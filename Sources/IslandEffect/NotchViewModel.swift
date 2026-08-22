@@ -107,6 +107,7 @@ final class NotchViewModel: ObservableObject {
     func open() {
         guard !isOpen else { return }
         isOpen = true
+        MediaManager.shared.setNeedsProgress(true)
         IslandDebug.log("open (tab: \(tab.rawValue))")
         hideActivityImmediately()
         haptic()
@@ -117,6 +118,7 @@ final class NotchViewModel: ObservableObject {
         if isPinned && !force { return }
         isOpen = false
         isPinned = false
+        MediaManager.shared.setNeedsProgress(false)
         IslandDebug.log("close")
         haptic()
     }

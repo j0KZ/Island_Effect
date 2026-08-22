@@ -17,6 +17,7 @@ final class NotchController {
     private var closeWork: DispatchWorkItem?
     private var cancellables = Set<AnyCancellable>()
     private var hoverTimer: Timer?
+    private var currentPollRate: Double = 0
     private var lastMouseLocation = CGPoint(x: -1, y: -1)
     private var suppressUntil = Date.distantPast
     private var lastScrollAt = Date.distantPast
@@ -166,14 +167,19 @@ final class NotchController {
     // MARK: - Monitores de mouse
 
     private func installMonitors() {
-        // Sondeo de la posición del puntero: es lo único fiable cuando hay apps
-        // en pantalla completa o que capturan los eventos globales.
-        let poll = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
+        // El grueso del trabajo es por eventos: solo cuando el mouse se mueve.
+        let moveMask: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged, .rightMouseDragged]
+        if let g = NSEvent.addGlobalMonitorForEvents(matching: moveMask, handler: { [weak self] _ in
             Task { @MainActor in self?.handleMouseMoved() }
-        }
-        poll.tolerance = 0.005
-        RunLoop.main.add(poll, forMode: .common)
-        hoverTimer = poll
+        }) { monitors.append(g) }
+        monitors.append(NSEvent.addLocalMonitorForEvents(matching: moveMask) { [weak self] event in
+            Task { @MainActor in self?.handleMouseMoved() }
+            return event
+        } as Any)
+
+        // Y un sondeo de respaldo, porque los monitores globales no reciben
+        // nada bajo apps a pantalla completa. Lento salvo cerca del notch.
+        setPollRate(idleRate)
 
         if let g = NSEvent.addGlobalMonitorForEvents(matching: [.scrollWheel], handler: { [weak self] event in
             Task { @MainActor in self?.handleScroll(event) }
@@ -186,15 +192,34 @@ final class NotchController {
                 if !self.isInsideIsland(NSEvent.mouseLocation, padding: self.hoverPadding) {
                     IslandDebug.log("close: clic fuera en \(NSEvent.mouseLocation)")
                     withAnimation(.island) { self.viewModel.close(force: true) }
-                } else {
-                    IslandDebug.log("clic dentro en \(NSEvent.mouseLocation)")
                 }
             }
         }) { monitors.append(g) }
     }
 
+    private let idleRate: Double = 8
+    private let activeRate: Double = 30
+
+    /// Reprograma el sondeo solo cuando cambia el ritmo, para no despertar la
+    /// CPU 60 veces por segundo cuando el puntero está lejos del notch.
+    private func setPollRate(_ hz: Double) {
+        guard currentPollRate != hz else { return }
+        currentPollRate = hz
+        hoverTimer?.invalidate()
+        let timer = Timer(timeInterval: 1.0 / hz, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.handleMouseMoved() }
+        }
+        timer.tolerance = (1.0 / hz) * 0.3
+        RunLoop.main.add(timer, forMode: .common)
+        hoverTimer = timer
+    }
+
     private func handleMouseMoved() {
         let location = NSEvent.mouseLocation
+        // Cerca del borde superior conviene reaccionar rápido; lejos, no.
+        let nearTop = location.y > currentScreen.frame.maxY - 220
+        setPollRate(nearTop || viewModel.isOpen || viewModel.isHovering ? activeRate : idleRate)
+
         if location == lastMouseLocation, !viewModel.isOpen, !viewModel.isHovering,
            panel?.ignoresMouseEvents == true { return }
         lastMouseLocation = location

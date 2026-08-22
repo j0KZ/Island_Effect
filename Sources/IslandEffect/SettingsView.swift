@@ -177,25 +177,51 @@ enum LoginItem {
 }
 
 final class SettingsWindowController: NSWindowController {
+    private static let autosaveName = "IslandEffectPreferences"
+
     convenience init() {
         let hosting = NSHostingController(rootView: SettingsView())
         let window = NSWindow(contentViewController: hosting)
         window.title = "Preferencias de Island Effect"
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.isReleasedWhenClosed = false
-        window.center()
-        // Un poco más abajo: así nunca queda bajo la isla desplegada.
-        if let screen = window.screen ?? NSScreen.main {
-            var frame = window.frame
-            frame.origin.y = min(frame.origin.y, screen.visibleFrame.maxY - frame.height - 140)
-            window.setFrame(frame, display: false)
+        // Fijamos el tamaño antes de centrar: si no, centra con un marco que
+        // todavía no es el definitivo y queda descuadrada.
+        window.setContentSize(NSSize(width: 460, height: 380))
+
+        // AppKit recuerda el marco por nombre; solo colocamos la ventana la
+        // primera vez, para no pisar donde el usuario la dejó.
+        let key = "NSWindow Frame " + Self.autosaveName
+        let isFirstRun = UserDefaults.standard.string(forKey: key) == nil
+        window.setFrameAutosaveName(Self.autosaveName)
+        if isFirstRun {
+            window.center()
+            if let screen = window.screen ?? NSScreen.main {
+                var frame = window.frame
+                frame.origin.y = min(frame.origin.y, screen.visibleFrame.maxY - frame.height - 140)
+                window.setFrame(frame, display: false)
+            }
+            window.saveFrame(usingName: Self.autosaveName)
         }
         self.init(window: window)
+        window.delegate = self
     }
 
     func show() {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
+    }
+}
+
+extension SettingsWindowController: NSWindowDelegate {
+    func windowDidMove(_ notification: Notification) {
+        window?.saveFrame(usingName: Self.autosaveName)
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        window?.saveFrame(usingName: Self.autosaveName)
+        // Volvemos a ser un accesorio: sin ventanas no hay por qué ocupar el Dock.
+        NSApp.setActivationPolicy(.accessory)
     }
 }

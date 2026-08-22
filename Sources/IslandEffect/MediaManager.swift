@@ -71,14 +71,103 @@ final class MediaManager: ObservableObject {
     private init() {}
 
     func start() {
+        // Music y Spotify publican una notificación distribuida en cada cambio
+        // de pista o de estado, con los metadatos incluidos. Escucharlas evita
+        // lanzar un osascript por segundo: en reposo el coste baja a cero.
+        let center = DistributedNotificationCenter.default()
+        center.addObserver(forName: Notification.Name("com.spotify.client.PlaybackStateChanged"),
+                           object: nil, queue: .main) { [weak self] note in
+            self?.handleNotification(note, app: .spotify)
+        }
+        center.addObserver(forName: Notification.Name("com.apple.Music.playerInfo"),
+                           object: nil, queue: .main) { [weak self] note in
+            self?.handleNotification(note, app: .music)
+        }
+        // Si el reproductor se cierra, limpiamos sin esperar al sondeo lento.
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didTerminateApplicationNotification,
+            object: nil, queue: .main) { [weak self] note in
+            guard let self,
+                  let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                  app.bundleIdentifier == self.info.app.bundleID else { return }
+            self.apply(.empty)
+        }
+
+        // Una sola consulta inicial para enterarnos de lo que ya estaba sonando.
         poll()
-        schedule(interval: 2.0)
+        schedule(interval: idleInterval)
+    }
+
+    /// Solo hace falta sondear la posición cuando la isla está abierta (barra de
+    /// progreso). El resto del tiempo basta una red de seguridad muy espaciada.
+    private var needsProgress = false
+    func setNeedsProgress(_ needed: Bool) {
+        guard needsProgress != needed else { return }
+        needsProgress = needed
+        schedule(interval: needed ? 1.0 : idleInterval)
+        if needed { poll() }
+    }
+
+    /// Si el reproductor publica notificaciones, sondear es casi innecesario.
+    /// Mientras no hayamos visto ninguna, mantenemos un sondeo corto para no
+    /// perdernos los cambios de canción (algunas versiones no las publican).
+    private var sawNotification = false
+    private var idleInterval: TimeInterval {
+        // Sin aviso de canción no hay para qué enterarse rápido de nada.
+        guard Prefs.shared.liveMusic else { return 60 }
+        if sawNotification { return info.isPlaying ? 30 : 60 }
+        return info.isPlaying ? 3 : 8
+    }
+
+    private func handleNotification(_ note: Notification, app: MediaApp) {
+        guard let userInfo = note.userInfo else { return }
+        let state = (userInfo["Player State"] as? String) ?? ""
+
+        // Si suena otra app, no dejamos que la que está en pausa se imponga.
+        if info.isActive, info.app != app, info.isPlaying, state != "Playing" { return }
+
+        guard state != "Stopped" else {
+            if info.app == app { apply(.empty) }
+            return
+        }
+
+        var np = NowPlaying()
+        np.app = app
+        np.isPlaying = state == "Playing"
+        np.title = userInfo["Name"] as? String ?? ""
+        np.artist = userInfo["Artist"] as? String ?? ""
+        np.album = userInfo["Album"] as? String ?? ""
+        switch app {
+        case .spotify:
+            np.duration = (userInfo["Duration"] as? Double ?? 0) / 1000
+            np.elapsed = userInfo["Playback Position"] as? Double ?? 0
+            np.trackKey = userInfo["Track ID"] as? String ?? (np.title + np.artist)
+        case .music:
+            np.duration = (userInfo["Total Time"] as? Double ?? 0) / 1000
+            // playerInfo no trae la posición; si es la misma pista, conservamos
+            // la estimación que ya teníamos.
+            let key = String(describing: userInfo["PersistentID"] ?? (np.title + np.artist))
+            np.trackKey = key
+            np.elapsed = key == info.trackKey ? estimatedElapsed : 0
+        case .none:
+            return
+        }
+        guard !np.title.isEmpty else { return }
+        if !sawNotification {
+            sawNotification = true
+            IslandDebug.log("el reproductor publica notificaciones: se deja de sondear")
+        }
+        IslandDebug.log("notificación de \(app.rawValue): \(np.title) (\(state))")
+        apply(np)
+        // Un único osascript para la carátula y la posición exacta.
+        if needsProgress { poll() }
     }
 
     /// Sondea cada segundo mientras suena algo y cada 3 s cuando no, para no gastar
     /// batería lanzando osascript sin necesidad.
     private func schedule(interval: TimeInterval) {
         guard currentInterval != interval else { return }
+        guard interval > 0 else { timer?.invalidate(); timer = nil; currentInterval = 0; return }
         currentInterval = interval
         timer?.invalidate()
         let t = Timer(timeInterval: interval, repeats: true) { [weak self] _ in self?.poll() }
@@ -134,7 +223,6 @@ final class MediaManager: ObservableObject {
     }
 
     private func apply(_ np: NowPlaying) {
-        schedule(interval: np.isPlaying ? 1.0 : 3.0)
         if np.isActive, np.trackKey != info.trackKey {
             IslandDebug.log("now playing: \(np.app.rawValue) · \(np.title) — \(np.artist) (playing: \(np.isPlaying))")
         }
@@ -152,6 +240,8 @@ final class MediaManager: ObservableObject {
             onTrackChange?(np)
         }
         if !np.isActive { lastAnnouncedKey = "" }
+        // Después de actualizar `info`, no antes: el ritmo depende de si suena.
+        schedule(interval: needsProgress ? 1.0 : idleInterval)
     }
 
     // MARK: - AppleScript

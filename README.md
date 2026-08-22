@@ -97,6 +97,35 @@ No es obligatorio: sin él la app funciona, solo pierdes el reproductor.
 | `SystemMonitors.swift` | Volumen (CoreAudio), brillo (DisplayServices), batería (IOKit), RAM |
 | `SettingsView.swift` | Preferencias + ítem de inicio |
 
+### Rendimiento
+
+Medido en un MacBook Pro M5 Pro, la app en reposo con el puntero lejos del
+notch, promediando tiempo de CPU real sobre una ventana de 45 s:
+
+| Versión | CPU | Memoria |
+|---|---|---|
+| Antes de optimizar | 5,33 % | 125 MB |
+| Después | **0,69 %** | **57 MB** |
+| Solo la isla, sin live activities | 0,20 % | 53 MB |
+
+Lo que se cambió:
+
+- **Nada de `osascript` en reposo.** Music y Spotify publican una notificación
+  distribuida en cada cambio de pista con los metadatos dentro; antes se
+  lanzaba un proceso `osascript` cada segundo. Solo se sondea con la isla
+  abierta (para que avance la barra de progreso) y como red de seguridad
+  espaciada. Si el reproductor resulta no publicar notificaciones, la app lo
+  detecta sola y vuelve a sondear más seguido.
+- **Volumen por evento.** El listener estaba puesto en la propiedad de volumen
+  "virtual", que no notifica; ahora escucha la escala por canal y en cuanto
+  llega el primer aviso apaga el sondeo.
+- **Brillo por evento** (`com.apple.backlight.changed`), con sondeo de respaldo
+  si esa notificación no llega.
+- **Sondeo del puntero adaptativo**: 8 Hz lejos del borde superior, 30 Hz cerca
+  del notch o con la isla abierta, en vez de 60 Hz constantes. El trabajo real
+  va por monitores de eventos; el temporizador es solo la red para apps a
+  pantalla completa.
+
 ### Limitaciones conocidas
 
 - El *now playing* solo cubre **Música y Spotify**. macOS 15.4 cerró el

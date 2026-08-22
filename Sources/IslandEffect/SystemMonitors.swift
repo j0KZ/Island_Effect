@@ -1,4 +1,6 @@
 import AppKit
+import Combine
+import notify
 import CoreAudio
 import AudioToolbox
 import IOKit.ps
@@ -15,6 +17,9 @@ final class VolumeMonitor: ObservableObject {
 
     private var device: AudioDeviceID = kAudioObjectUnknown
     private var listenerBlock: AudioObjectPropertyListenerBlock?
+    private var listenerDevice: AudioDeviceID = kAudioObjectUnknown
+    /// Si CoreAudio nos avisa de verdad, el sondeo sobra.
+    private var sawListener = false
 
     private init() {
         refreshDevice()
@@ -23,23 +28,34 @@ final class VolumeMonitor: ObservableObject {
     }
 
     private var poller: Timer?
+    private var cancellable: AnyCancellable?
 
     func start() {
         installListener()
-        // El listener de CoreAudio no es fiable para la propiedad de volumen virtual,
-        // así que además sondeamos (es una lectura muy barata).
-        let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
-            self?.publish(notify: true)
-        }
-        timer.tolerance = 0.1
-        RunLoop.main.add(timer, forMode: .common)
-        poller = timer
+        refreshPolling()
+        cancellable = Prefs.shared.$liveVolume
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.refreshPolling() }
 
         NotificationCenter.default.addObserver(forName: NSWorkspace.didWakeNotification,
                                                object: nil, queue: .main) { [weak self] _ in
             self?.refreshDevice()
             self?.installListener()
         }
+    }
+
+    /// El listener de CoreAudio no es fiable para el volumen virtual, así que
+    /// sondeamos —pero solo si el aviso está activo; si no, es gasto puro.
+    private func refreshPolling() {
+        poller?.invalidate()
+        poller = nil
+        guard Prefs.shared.liveVolume, !sawListener else { return }
+        let timer = Timer(timeInterval: 0.4, repeats: true) { [weak self] _ in
+            self?.publish(notify: true)
+        }
+        timer.tolerance = 0.2
+        RunLoop.main.add(timer, forMode: .common)
+        poller = timer
     }
 
     private func refreshDevice() {
@@ -110,16 +126,46 @@ final class VolumeMonitor: ObservableObject {
         publish()
     }
 
+    private func listenAddresses() -> [AudioObjectPropertyAddress] {
+        var list = [volumeAddress(), muteAddress()]
+        // El volumen "virtual" no siempre notifica; la escala por canal sí.
+        for element in [UInt32(0), 1, 2] {
+            list.append(AudioObjectPropertyAddress(
+                mSelector: kAudioDevicePropertyVolumeScalar,
+                mScope: kAudioDevicePropertyScopeOutput,
+                mElement: element))
+        }
+        return list
+    }
+
+    private func removeListener() {
+        guard let block = listenerBlock, listenerDevice != kAudioObjectUnknown else { return }
+        for var addr in listenAddresses() {
+            AudioObjectRemovePropertyListenerBlock(listenerDevice, &addr, DispatchQueue.main, block)
+        }
+        listenerBlock = nil
+        listenerDevice = kAudioObjectUnknown
+    }
+
     private func installListener() {
         guard device != kAudioObjectUnknown else { return }
-        var addr = volumeAddress()
+        removeListener()
+        listenerDevice = device
         let block: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
-            DispatchQueue.main.async { self?.publish(notify: true) }
+            DispatchQueue.main.async {
+                guard let self else { return }
+                if !self.sawListener {
+                    self.sawListener = true
+                    IslandDebug.log("CoreAudio notifica el volumen: se deja de sondear")
+                    self.refreshPolling()   // el listener funciona: fuera el sondeo
+                }
+                self.publish(notify: true)
+            }
         }
         listenerBlock = block
-        AudioObjectAddPropertyListenerBlock(device, &addr, DispatchQueue.main, block)
-        var maddr = muteAddress()
-        AudioObjectAddPropertyListenerBlock(device, &maddr, DispatchQueue.main, block)
+        for var addr in listenAddresses() where AudioObjectHasProperty(device, &addr) {
+            AudioObjectAddPropertyListenerBlock(device, &addr, DispatchQueue.main, block)
+        }
     }
 
     func publish(notify: Bool = false) {
@@ -146,6 +192,8 @@ final class BrightnessMonitor: ObservableObject {
     private var getFn: GetFn?
     private var setFn: SetFn?
     private var timer: Timer?
+    private var cancellable: AnyCancellable?
+    private var sawNotification = false
 
     private init() {
         let path = "/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices"
@@ -179,7 +227,33 @@ final class BrightnessMonitor: ObservableObject {
     /// Sondeo ligero: el brillo no emite notificaciones públicas.
     func start() {
         guard available else { return }
-        timer = Timer.scheduledTimer(withTimeInterval: 0.35, repeats: true) { [weak self] _ in
+        // El sistema publica un aviso al cambiar el backlight; si llega,
+        // dejamos de sondear.
+        var token: Int32 = 0
+        notify_register_dispatch("com.apple.backlight.changed", &token, DispatchQueue.main) { [weak self] (_: Int32) in
+            guard let self else { return }
+            if !self.sawNotification {
+                self.sawNotification = true
+                IslandDebug.log("el sistema notifica el brillo: se deja de sondear")
+                self.refreshPolling()
+            }
+            let v = self.read()
+            if abs(v - self.brightness) > 0.002 {
+                self.brightness = v
+                self.onChange?(v)
+            }
+        }
+        refreshPolling()
+        cancellable = Prefs.shared.$liveBrightness
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.refreshPolling() }
+    }
+
+    private func refreshPolling() {
+        timer?.invalidate()
+        timer = nil
+        guard Prefs.shared.liveBrightness, !sawNotification else { return }
+        let t = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
             guard let self else { return }
             let v = self.read()
             if abs(v - self.brightness) > 0.005 {
@@ -188,7 +262,9 @@ final class BrightnessMonitor: ObservableObject {
                 if previous > 0 || v > 0 { self.onChange?(v) }
             }
         }
-        timer?.tolerance = 0.15
+        t.tolerance = 0.25
+        RunLoop.main.add(t, forMode: .common)
+        timer = t
     }
 }
 
