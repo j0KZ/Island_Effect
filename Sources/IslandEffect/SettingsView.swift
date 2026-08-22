@@ -65,7 +65,7 @@ struct SettingsView: View {
             }
             HStack {
                 Text("Alto abierto")
-                Slider(value: $prefs.expandedHeight, in: 140...340, step: 5)
+                Slider(value: $prefs.expandedHeight, in: 96...340, step: 2)
                 Text("\(Int(prefs.expandedHeight))").monospacedDigit().frame(width: 40, alignment: .trailing)
             }
             HStack {
@@ -75,7 +75,7 @@ struct SettingsView: View {
             }
             HStack {
                 Text("Ancho extra en reposo")
-                Slider(value: $prefs.extraClosedWidth, in: 0...80, step: 2)
+                Slider(value: $prefs.extraClosedWidth, in: 0...260, step: 2)
                 Text("\(Int(prefs.extraClosedWidth))").monospacedDigit().frame(width: 40, alignment: .trailing)
             }
             HStack {

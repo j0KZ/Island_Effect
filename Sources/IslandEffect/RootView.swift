@@ -54,13 +54,13 @@ struct RootView: View {
     /// Una sola forma para los dos estados: cerrada es el notch; abierta, el
     /// notch más el panel que cuelga bajo la barra de menús.
     private var shape: IslandShape {
-        IslandShape(notchWidth: vm.isOpen ? vm.notchSize.width : size.width,
-                    notchHeight: vm.isOpen ? vm.notchSize.height : size.height,
-                    boardHeight: vm.isOpen ? prefs.expandedHeight : 0,
-                    topRadius: 8,
-                    notchBottomRadius: vm.activity != nil ? 14 : (vm.metrics.hasNotch ? 10 : 6),
-                    boardRadius: prefs.cornerRadius,
-                    fillet: 16)
+        IslandShape(notchWidth: vm.notchDrawnSize.width,
+                    notchHeight: vm.notchDrawnSize.height,
+                    boardHeight: vm.boardSize?.height ?? 0,
+                    topRadius: NotchViewModel.topRadius,
+                    notchBottomRadius: vm.metrics.hasNotch ? 10 : 6,
+                    boardRadius: vm.isOpen ? prefs.cornerRadius : 14,
+                    fillet: vm.isOpen ? 16 : 10)
     }
 
     private var background: some View {
@@ -144,16 +144,17 @@ struct RootView: View {
 
     @ViewBuilder
     private var content: some View {
-        if vm.isOpen {
-            VStack(spacing: 0) {
-                // La fila de la barra de menús queda libre: solo el notch.
-                Color.clear.frame(height: vm.notchSize.height)
+        VStack(spacing: 0) {
+            // La fila de la barra de menús queda libre: solo el notch.
+            Color.clear.frame(height: vm.notchDrawnSize.height)
+            if vm.isOpen {
                 OpenView(vm: vm)
                     .frame(height: prefs.expandedHeight)
+                    .transition(.opacity)
+            } else if let activity = vm.activity {
+                ActivityBar(activity: activity, size: NotchViewModel.activitySize(for: activity))
+                    .transition(.opacity)
             }
-            .transition(.opacity)
-        } else {
-            ClosedView(vm: vm)
         }
     }
 
@@ -184,85 +185,94 @@ struct RootView: View {
     }
 }
 
-// MARK: - Estado cerrado (live activities)
+// MARK: - Live activity: píldora discreta bajo el notch
 
-struct ClosedView: View {
-    @ObservedObject var vm: NotchViewModel
+/// Aviso pequeño colgando debajo del notch. Antes se dibujaba a los lados,
+/// donde tapaba los íconos de la barra de menús.
+struct ActivityBar: View {
+    let activity: LiveActivity
+    let size: CGSize
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 8) {
             leading
-                .frame(width: sideWidths.0, alignment: .leading)
-            if vm.metrics.hasNotch {
-                Color.clear.frame(width: vm.notchSize.width)
-            }
+            text
+            Spacer(minLength: 4)
             trailing
-                .frame(width: sideWidths.1, alignment: .trailing)
         }
-        .frame(height: vm.closedSize.height)
-        .padding(.horizontal, vm.activity == nil ? 0 : 10)
+        .padding(.horizontal, 10)
+        .frame(width: size.width, height: size.height)
         .foregroundStyle(.white)
-    }
-
-    private var sideWidths: (CGFloat, CGFloat) {
-        guard let activity = vm.activity else { return (0, 0) }
-        return NotchViewModel.sideWidths(for: activity)
     }
 
     @ViewBuilder
     private var leading: some View {
-        switch vm.activity {
+        switch activity {
         case .music:
-            ArtworkView(size: 22, corner: 6)
-                .padding(.leading, 4)
+            ArtworkView(size: 24, corner: 6)
         case .volume(_, let muted):
-            Image(systemName: muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                .font(.system(size: 12, weight: .semibold))
-                .padding(.leading, 6)
+            symbol(muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
         case .brightness:
-            Image(systemName: "sun.max.fill")
-                .font(.system(size: 12, weight: .semibold))
-                .padding(.leading, 6)
+            symbol("sun.max.fill")
         case .battery(_, let plugged, let charging):
-            Image(systemName: charging ? "battery.100.bolt" : (plugged ? "powerplug.fill" : "battery.50"))
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(charging ? Color.green : .white)
-                .padding(.leading, 6)
-        case .message(_, let symbol, let tint):
-            Image(systemName: symbol)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(color(for: tint))
-                .padding(.leading, 6)
-        case .none:
+            symbol(charging ? "battery.100.bolt" : (plugged ? "powerplug.fill" : "battery.50"),
+                   tint: charging ? .green : .white)
+        case .message(_, let symbolName, let tint):
+            symbol(symbolName, tint: color(for: tint))
+        }
+    }
+
+    @ViewBuilder
+    private var text: some View {
+        switch activity {
+        case .music(let title, let subtitle, _):
+            VStack(alignment: .leading, spacing: 0) {
+                Text(title)
+                    .font(.system(size: 11, weight: .semibold))
+                    .lineLimit(1)
+                Text(subtitle)
+                    .font(.system(size: 9.5))
+                    .foregroundStyle(.white.opacity(0.55))
+                    .lineLimit(1)
+            }
+        case .message(let content, _, _):
+            Text(content)
+                .font(.system(size: 11, weight: .medium))
+                .lineLimit(1)
+        case .battery(let percent, let plugged, let charging):
+            Text(charging ? "Cargando" : (plugged ? "Conectado" : "Con batería"))
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.white.opacity(0.75))
+                .lineLimit(1)
+                .accessibilityValue("\(percent) %")
+        case .volume, .brightness:
             EmptyView()
         }
     }
 
     @ViewBuilder
     private var trailing: some View {
-        switch vm.activity {
+        switch activity {
         case .music(_, _, let playing):
             EqualizerBars(active: playing)
-                .frame(width: 20, height: 14)
-                .padding(.trailing, 6)
+                .frame(width: 16, height: 11)
         case .volume(let value, let muted):
             MiniBar(value: muted ? 0 : Double(value))
-                .padding(.trailing, 6)
         case .brightness(let value):
             MiniBar(value: Double(value))
-                .padding(.trailing, 6)
         case .battery(let percent, _, _):
-            Text("\(percent)%")
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .padding(.trailing, 6)
-        case .message(let text, _, _):
-            Text(text)
-                .font(.system(size: 11, weight: .medium))
-                .lineLimit(1)
-                .padding(.trailing, 6)
-        case .none:
+            Text("\(percent) %")
+                .font(.system(size: 11, weight: .semibold, design: .rounded).monospacedDigit())
+        case .message:
             EmptyView()
         }
+    }
+
+    private func symbol(_ name: String, tint: Color = .white) -> some View {
+        Image(systemName: name)
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(tint)
+            .frame(width: 16)
     }
 
     private func color(for tint: LiveActivity.LiveTint) -> Color {
@@ -284,15 +294,19 @@ struct OpenView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-                .frame(height: 30)
+                .frame(height: compact ? 24 : 30)
             Divider().overlay(Color.white.opacity(0.08))
             body(for: vm.tab)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
+                .padding(.horizontal, compact ? 10 : 14)
+                .padding(.vertical, compact ? 7 : 12)
         }
         .foregroundStyle(.white)
     }
+
+    /// Con el panel bajo, cabecera y márgenes se encogen para dejarle sitio
+    /// al contenido.
+    private var compact: Bool { prefs.expandedHeight < 150 }
 
     private var availableTabs: [NotchTab] {
         NotchTab.allCases.filter {

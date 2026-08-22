@@ -59,8 +59,7 @@ final class NotchController {
 
     private func windowSize() -> CGSize {
         let open = viewModel.openSize
-        let closed = viewModel.closedSize
-        return CGSize(width: max(open.width, closed.width, viewModel.notchSize.width) + margin * 2,
+        return CGSize(width: max(open.width, viewModel.notchDrawnSize.width) + margin * 2,
                       height: open.height + margin)
     }
 
@@ -78,25 +77,21 @@ final class NotchController {
     /// Abierta: el notch más el panel que cuelga por debajo.
     private func islandRects(padding: CGFloat = 0) -> [CGRect] {
         let screen = currentScreen
+        // Para el ratón usamos el notch FÍSICO, no el dibujado: así el par de
+        // puntos de más que ocupa el contorno no le roba clics a la barra.
         let notch = viewModel.notchSize
-        let notchRect = CGRect(x: screen.frame.midX - notch.width / 2 - padding,
-                               y: screen.frame.maxY - notch.height - padding,
-                               width: notch.width + padding * 2,
-                               height: notch.height + padding)
-        guard viewModel.isOpen else {
-            let closed = viewModel.closedSize
-            let height = max(closed.height, 12)
-            return [CGRect(x: screen.frame.midX - notch.width / 2 - padding,
-                           y: screen.frame.maxY - height - padding,
-                           width: notch.width + padding * 2,
-                           height: height + padding)]
+        let notchHeight = viewModel.notchDrawnSize.height
+        var rects = [CGRect(x: screen.frame.midX - notch.width / 2 - padding,
+                            y: screen.frame.maxY - notchHeight - padding,
+                            width: notch.width + padding * 2,
+                            height: notchHeight + padding)]
+        if let board = viewModel.boardSize {
+            rects.append(CGRect(x: screen.frame.midX - board.width / 2 - padding,
+                                y: screen.frame.maxY - notchHeight - board.height - padding,
+                                width: board.width + padding * 2,
+                                height: board.height + padding * 2))
         }
-        let board = CGSize(width: prefs.expandedWidth, height: prefs.expandedHeight)
-        let boardRect = CGRect(x: screen.frame.midX - board.width / 2 - padding,
-                               y: screen.frame.maxY - notch.height - board.height - padding,
-                               width: board.width + padding * 2,
-                               height: board.height + padding * 2)
-        return [notchRect, boardRect]
+        return rects
     }
 
     private func isInsideIsland(_ point: CGPoint, padding: CGFloat = 0) -> Bool {

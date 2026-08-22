@@ -8,26 +8,31 @@ struct ShelfView: View {
     @State private var hoveredID: UUID?
 
     var body: some View {
-        VStack(spacing: 8) {
-            if shelf.items.isEmpty {
-                empty
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        ForEach(shelf.items) { item in
-                            ShelfTile(item: item, hovered: hoveredID == item.id)
-                                .onHover { hoveredID = $0 ? item.id : (hoveredID == item.id ? nil : hoveredID) }
+        GeometryReader { geo in
+            let compact = geo.size.height < 110
+            VStack(spacing: 6) {
+                if shelf.items.isEmpty {
+                    empty
+                } else {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(shelf.items) { item in
+                                ShelfTile(item: item,
+                                          hovered: hoveredID == item.id,
+                                          compact: compact)
+                                    .onHover { hoveredID = $0 ? item.id : (hoveredID == item.id ? nil : hoveredID) }
+                            }
                         }
+                        .padding(.horizontal, 2)
+                        .padding(.vertical, 2)
+                        .frame(maxHeight: .infinity)
                     }
-                    .padding(.horizontal, 2)
-                    .padding(.vertical, 2)
                     .frame(maxHeight: .infinity)
+                    if !compact { footer }
                 }
-                .frame(maxHeight: .infinity)
-                footer
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var empty: some View {
@@ -67,6 +72,7 @@ struct ShelfView: View {
 struct ShelfTile: View {
     let item: ShelfItem
     var hovered: Bool
+    var compact: Bool = false
     @ObservedObject private var shelf = ShelfStore.shared
 
     var body: some View {
@@ -74,14 +80,14 @@ struct ShelfTile: View {
             Image(nsImage: item.icon)
                 .resizable()
                 .interpolation(.high)
-                .frame(width: 42, height: 42)
+                .frame(width: compact ? 30 : 42, height: compact ? 30 : 42)
             Text(item.name)
                 .font(.system(size: 9, weight: .medium))
-                .lineLimit(2)
+                .lineLimit(compact ? 1 : 2)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.white.opacity(0.85))
         }
-        .frame(width: 74, height: 78)
+        .frame(width: 74, height: compact ? 56 : 78)
         .padding(4)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)

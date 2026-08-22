@@ -31,11 +31,10 @@ pasar el mouse.
   menús, con la misma funcionalidad.
 - Multi‑monitor: sigue la pantalla donde está el mouse (configurable).
 
-**Live activities** (con la isla cerrada, alrededor del notch)
+**Live activities** (píldora pequeña colgando bajo el notch, sin tapar la barra)
 - Cambio de canción: carátula + ecualizador animado.
 - Volumen y brillo al tocar las teclas.
 - Conexión/desconexión del cargador.
-- Fin del temporizador.
 
 **Música** — Apple Music y Spotify
 - Carátula, título, artista, barra de progreso con scrubbing, anterior/play/
@@ -53,8 +52,8 @@ pasar el mouse.
 - Arrastrar archivos = van a la repisa.
 
 **Preferencias** (ícono de engranaje en la isla o el menú de la barra)
-- Tamaño abierto, radio de esquinas, ancho extra en reposo, contorno, halo y
-  fondo translúcido.
+- Tamaño abierto (el contenido se compacta solo en los altos chicos), radio de
+  esquinas, ancho extra en reposo, contorno, halo y fondo translúcido.
 - Retardos de apertura/cierre, háptica, pantalla a seguir, abrir al iniciar
   sesión y ocultar el ícono de la barra de menús (con botón de salir acá mismo).
 - Qué pestañas y qué live activities quieres, y su duración. Las activities
@@ -112,5 +111,5 @@ No es obligatorio: sin él la app funciona, solo pierdes el reproductor.
 ISLAND_DEBUG=1 ISLAND_LOG=/tmp/island.log open -n build/Island\ Effect.app
 ```
 
-`ISLAND_TAB=music|shelf` fuerza la pestaña inicial e `ISLAND_SETTINGS=1` abre
-Preferencias al arrancar.
+`ISLAND_TAB=music|shelf` fuerza la pestaña inicial, `ISLAND_SETTINGS=1` abre
+Preferencias al arrancar e `ISLAND_DEMO=1` dispara una live activity de prueba.

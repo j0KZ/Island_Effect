@@ -49,41 +49,57 @@ final class NotchViewModel: ObservableObject {
 
     // MARK: - Tamaños
 
+    /// Radio de las esquinas superiores invertidas.
+    static let topRadius: CGFloat = 8
+
+    /// Tamaño físico del notch (recorte de la pantalla, sin píxeles dentro).
     var notchSize: CGSize { metrics.notchSize }
 
-    var closedSize: CGSize {
-        let base = metrics.notchSize
-        if let activity, !isOpen {
-            let sides = sideWidth(for: activity)
-            let height = metrics.hasNotch ? base.height : 30
-            return CGSize(width: base.width + sides.0 + sides.1, height: height)
+    /// Tamaño con el que se DIBUJA la columna del notch. Va un poco más ancha
+    /// que el recorte: los lados de la forma quedan hundidos `topRadius` hacia
+    /// dentro, y si no la ensanchamos el contorno cae dentro del recorte, donde
+    /// no hay píxeles y no se ve nada.
+    var notchDrawnSize: CGSize {
+        let bump: CGFloat = (isHovering && !isOpen && activity == nil) ? 4 : 0
+        let height = metrics.hasNotch ? notchSize.height : 10
+        return CGSize(width: notchSize.width + 2 * (Self.topRadius + 1) + prefs.extraClosedWidth,
+                      height: height + bump)
+    }
+
+    /// Panel que cuelga bajo la barra de menús: grande al abrir, mínimo para
+    /// una live activity, inexistente en reposo.
+    var boardSize: CGSize? {
+        if isOpen {
+            return CGSize(width: prefs.expandedWidth, height: prefs.expandedHeight)
         }
-        let idleHeight = metrics.hasNotch ? base.height : 10
-        let hoverBump: CGFloat = (isHovering && !isOpen) ? 4 : 0
-        return CGSize(width: base.width + prefs.extraClosedWidth, height: idleHeight + hoverBump)
+        if let activity {
+            return Self.activitySize(for: activity)
+        }
+        return nil
+    }
+
+    /// Píldora discreta bajo el notch para cada tipo de aviso.
+    static func activitySize(for activity: LiveActivity) -> CGSize {
+        switch activity {
+        // Nunca más angostas que la columna del notch: si no, el filete se
+        // invierte y el encuentro entre notch y píldora se ve roto.
+        case .music: return CGSize(width: 300, height: 40)
+        case .volume, .brightness: return CGSize(width: 264, height: 30)
+        case .battery: return CGSize(width: 272, height: 30)
+        case .message: return CGSize(width: 280, height: 30)
+        }
+    }
+
+    var currentSize: CGSize {
+        let notch = notchDrawnSize
+        let board = boardSize
+        return CGSize(width: max(notch.width, board?.width ?? 0),
+                      height: notch.height + (board?.height ?? 0))
     }
 
     var openSize: CGSize {
         CGSize(width: prefs.expandedWidth,
-               height: prefs.expandedHeight + metrics.notchSize.height)
-    }
-
-    var currentSize: CGSize { isOpen ? openSize : closedSize }
-
-    /// Ancho del contenido a cada lado del notch para una live activity.
-    static func sideWidths(for activity: LiveActivity) -> (CGFloat, CGFloat) {
-        switch activity {
-        case .music: return (52, 44)
-        case .volume, .brightness: return (34, 78)
-        case .battery: return (38, 56)
-        case .message: return (38, 104)
-        }
-    }
-
-    private func sideWidth(for activity: LiveActivity) -> (CGFloat, CGFloat) {
-        let sides = Self.sideWidths(for: activity)
-        // 10pt de padding horizontal a cada lado (ver ClosedView).
-        return (sides.0 + 10, sides.1 + 10)
+               height: prefs.expandedHeight + notchSize.height)
     }
 
     // MARK: - Apertura

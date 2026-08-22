@@ -29,6 +29,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] _ in self?.syncStatusItem() }
             .store(in: &cancellables)
 
+        if ProcessInfo.processInfo.environment["ISLAND_DEMO"] == "1" {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                Task { @MainActor in
+                    NotchController.shared.viewModel.show(
+                        .music(title: "Me & Nas Bring It To Your Hardest",
+                               subtitle: "Slick Rick", playing: true), duration: 8)
+                }
+            }
+        }
+
         if ProcessInfo.processInfo.environment["ISLAND_SETTINGS"] == "1" {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.showSettings() }
         }
