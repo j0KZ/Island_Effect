@@ -120,7 +120,7 @@ un idioma es copiar una carpeta `.lproj` y traducir.
 | Archivo | Rol |
 |---|---|
 | `NotchPanel.swift` | `NSPanel` sin bordes sobre la barra de menús, con click‑through fuera de la isla |
-| `NotchController.swift` | Posición, hover, gestos, avisos, multi‑monitor, paso de clics |
+| `NotchController.swift` | Posición, hover, avisos, multi‑monitor, paso de clics |
 | `NotchViewModel.swift` | Estado (reposo / aviso / abierta) y tamaños de cada uno |
 | `NotchShape.swift` | Forma del notch en reposo y de la isla desplegada (notch + panel colgante) |
 | `RootView.swift` | Fondo, contorno, píldora de aviso y panel abierto |
