@@ -36,7 +36,8 @@ pasar el mouse.
 - Multi‑monitor: sigue la pantalla donde está el mouse (configurable).
 
 **Avisos** (píldora pequeña colgando bajo el notch, sin tapar la barra)
-- Cambio de canción: carátula + ecualizador animado.
+- Cambio de canción: carátula, ecualizador, tiempo transcurrido y una línea de
+  progreso en el canto inferior.
 - Conexión/desconexión del cargador.
 
 Volumen y brillo no tienen aviso a propósito: macOS ya muestra el suyo y
@@ -187,15 +188,12 @@ Lo que se cambió:
 
 ### Pendiente
 
-- **El lavado de color sale gris justo al cambiar de canción.** La píldora
-  aparece en cuanto llega el aviso de pista nueva, pero la carátula se pide
-  aparte (una consulta para la URL y luego la descarga), así que durante los
-  primeros instantes `artworkBackdrop` todavía es `nil` y el panel se ve
-  neutro; cuando la portada llega, el aviso puede haberse ido ya. Caminos:
-  retrasar la píldora hasta que la carátula resuelva (con tope de ~700 ms),
-  mantener el lavado anterior mientras carga, o precargar la portada de la
-  pista siguiente. Aparte de esto, una portada en blanco y negro se ve gris
-  porque así es la portada: eso es correcto.
+- **El lavado de color sale gris el primer medio segundo tras el cambio de
+  canción.** La píldora aparece con el aviso de pista nueva y la carátula llega
+  después, así que ese instante inicial se ve neutro. Caminos: retrasar la
+  píldora hasta que la carátula resuelva (con tope de ~700 ms), o mantener el
+  lavado anterior mientras carga. Aparte de esto, una portada en blanco y negro
+  se ve gris porque así es la portada: eso es correcto.
 
 ### Limitaciones conocidas
 

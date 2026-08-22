@@ -80,8 +80,8 @@ final class NotchViewModel: ObservableObject {
         case .music(let title, let subtitle, _):
             let text = max(textWidth(title, size: 11, weight: .semibold),
                            textWidth(subtitle, size: 9.5, weight: .regular))
-            // 20 de márgenes + 24 carátula + 18 ecualizador + 3 huecos de 8 + holgura
-            return CGSize(width: clampWidth(98 + text), height: 40)
+            // 20 de márgenes + 24 carátula + 34 (ecualizador y tiempo) + huecos
+            return CGSize(width: clampWidth(114 + text), height: 46)
         case .battery(let percent, let plugged, let charging):
             let label = charging ? "Charging" : (plugged ? "Plugged in" : "On battery")
             let text = textWidth(label, size: 11, weight: .medium)

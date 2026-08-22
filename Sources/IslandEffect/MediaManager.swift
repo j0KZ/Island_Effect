@@ -251,6 +251,10 @@ final class MediaManager: ObservableObject {
             artworkTint = nil
             artworkBackdrop = nil
             fetchArtwork(for: np)
+        } else if artwork == nil, np.isActive {
+            // Misma pista pero seguimos sin portada: si los datos llegaron por
+            // notificación no traían la URL, así que hay que ir a buscarla.
+            fetchArtwork(for: np)
         }
         let key = np.app.rawValue + "|" + np.trackKey
         if np.isActive, key != lastAnnouncedKey || np.isPlaying != lastAnnouncedPlaying {
@@ -348,17 +352,22 @@ final class MediaManager: ObservableObject {
         lastArtworkKey = key
         switch np.app {
         case .spotify:
-            guard let urlString = np.artworkURL, let url = URL(string: urlString) else { return }
-            artworkTask?.cancel()
-            artworkTask = URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
-                guard let self, let data, let image = NSImage(data: data) else { return }
-                let tint = Self.dominantColor(of: image)
-                DispatchQueue.main.async {
-                    guard self.lastArtworkKey == key else { return }
-                    self.setArtwork(image, tint: tint)
+            if let urlString = np.artworkURL, let url = URL(string: urlString) {
+                downloadArtwork(from: url, key: key)
+            } else {
+                // El aviso de Spotify no incluye la carátula: la pedimos aparte.
+                queue.async { [weak self] in
+                    guard let self else { return }
+                    let out = self.runScript("""
+                    tell application id "com.spotify.client"
+                        if player state is stopped then return ""
+                        return artwork url of current track
+                    end tell
+                    """)
+                    guard let out, !out.isEmpty, let url = URL(string: out) else { return }
+                    DispatchQueue.main.async { self.downloadArtwork(from: url, key: key) }
                 }
             }
-            artworkTask?.resume()
         case .music:
             queue.async { [weak self] in
                 guard let self else { return }
@@ -437,6 +446,19 @@ final class MediaManager: ObservableObject {
     func openAutomationSettings() {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    private func downloadArtwork(from url: URL, key: String) {
+        artworkTask?.cancel()
+        artworkTask = URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
+            guard let self, let data, let image = NSImage(data: data) else { return }
+            let tint = Self.dominantColor(of: image)
+            DispatchQueue.main.async {
+                guard self.lastArtworkKey == key else { return }
+                self.setArtwork(image, tint: tint)
+            }
+        }
+        artworkTask?.resume()
     }
 
     /// El reescalado usa AppKit, así que va en el hilo principal (son 16x16).

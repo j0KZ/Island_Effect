@@ -234,6 +234,12 @@ struct RootView: View {
 struct ActivityBar: View {
     let activity: LiveActivity
     let size: CGSize
+    @ObservedObject private var media = MediaManager.shared
+    @State private var elapsed: Double = 0
+    private let ticker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    private var isMusic: Bool { if case .music = activity { return true }; return false }
+    private var duration: Double { media.info.duration }
 
     var body: some View {
         HStack(spacing: 8) {
@@ -246,6 +252,26 @@ struct ActivityBar: View {
         .padding(.horizontal, 10)
         .frame(width: size.width, height: size.height)
         .foregroundStyle(.white)
+        .overlay(alignment: .bottom) {
+            // Cuánto lleva la canción, como la línea de la Dynamic Island.
+            if isMusic, duration > 1 {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.white.opacity(0.16))
+                        Capsule().fill(Color.white.opacity(0.7))
+                            .frame(width: geo.size.width * min(1, max(0, elapsed / duration)))
+                    }
+                }
+                .frame(height: 2)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 5)
+            }
+        }
+        .onAppear { elapsed = media.estimatedElapsed }
+        .onReceive(ticker) { _ in
+            guard isMusic else { return }
+            elapsed = media.estimatedElapsed
+        }
     }
 
     @ViewBuilder
@@ -285,8 +311,13 @@ struct ActivityBar: View {
     private var trailing: some View {
         switch activity {
         case .music(_, _, let playing):
-            EqualizerBars(active: playing)
-                .frame(width: 18, height: 12)
+            VStack(alignment: .trailing, spacing: 2) {
+                EqualizerBars(active: playing)
+                    .frame(width: 18, height: 11)
+                Text(TimeFormat.clock(elapsed))
+                    .font(.system(size: 9, weight: .medium, design: .rounded).monospacedDigit())
+                    .foregroundStyle(.white.opacity(0.6))
+            }
         case .battery(let percent, _, _):
             Text("\(percent) %")
                 .font(.system(size: 11, weight: .semibold, design: .rounded).monospacedDigit())
