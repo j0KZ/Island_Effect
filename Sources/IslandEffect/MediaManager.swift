@@ -1,5 +1,7 @@
 import AppKit
 import Combine
+import CoreImage
+import SwiftUI
 
 struct NowPlaying: Equatable {
     var app: MediaApp = .none
@@ -52,6 +54,8 @@ final class MediaManager: ObservableObject {
 
     @Published private(set) var info = NowPlaying.empty
     @Published private(set) var artwork: NSImage?
+    /// Color dominante de la carátula, para teñir el vidrio de la isla.
+    @Published private(set) var artworkTint: Color?
     /// true si macOS negó el permiso de Automatización para el reproductor.
     @Published private(set) var automationDenied = false
     /// Se dispara cuando cambia la canción o el estado play/pausa.
@@ -120,7 +124,7 @@ final class MediaManager: ObservableObject {
     }
 
     private func handleNotification(_ note: Notification, app: MediaApp) {
-        guard let userInfo = note.userInfo else { return }
+        guard enabledApps().contains(app), let userInfo = note.userInfo else { return }
         let state = (userInfo["Player State"] as? String) ?? ""
 
         // Si suena otra app, no dejamos que la que está en pausa se imponga.
@@ -183,12 +187,21 @@ final class MediaManager: ObservableObject {
         return min(info.duration, info.elapsed + delta)
     }
 
+    /// Solo los reproductores que el usuario tenga activados: consultar uno que
+    /// no usa cuesta un proceso y un permiso de automatización de más.
+    private func enabledApps() -> [MediaApp] {
+        var apps: [MediaApp] = []
+        if Prefs.shared.useSpotify { apps.append(.spotify) }
+        if Prefs.shared.useAppleMusic { apps.append(.music) }
+        return apps
+    }
+
     private func runningApps() -> [MediaApp] {
         let ids = Set(NSWorkspace.shared.runningApplications.compactMap { $0.bundleIdentifier })
-        var apps: [MediaApp] = []
-        if ids.contains("com.spotify.client") { apps.append(.spotify) }
-        if ids.contains("com.apple.Music") { apps.append(.music) }
-        return apps
+        return enabledApps().filter { app in
+            guard let bundle = app.bundleID else { return false }
+            return ids.contains(bundle)
+        }
     }
 
     private func poll() {
@@ -231,6 +244,7 @@ final class MediaManager: ObservableObject {
         info = np
         if !sameTrack {
             artwork = nil
+            artworkTint = nil
             fetchArtwork(for: np)
         }
         let key = np.app.rawValue + "|" + np.trackKey
@@ -333,9 +347,11 @@ final class MediaManager: ObservableObject {
             artworkTask?.cancel()
             artworkTask = URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
                 guard let self, let data, let image = NSImage(data: data) else { return }
+                let tint = Self.dominantColor(of: image)
                 DispatchQueue.main.async {
                     guard self.lastArtworkKey == key else { return }
                     self.artwork = image
+                    self.artworkTint = tint
                 }
             }
             artworkTask?.resume()
@@ -369,9 +385,11 @@ final class MediaManager: ObservableObject {
                 return "ok"
                 """
                 guard self.runScript(script) == "ok", let image = NSImage(contentsOfFile: path) else { return }
+                let tint = Self.dominantColor(of: image)
                 DispatchQueue.main.async {
                     guard self.lastArtworkKey == key else { return }
                     self.artwork = image
+                    self.artworkTint = tint
                 }
             }
         case .none:
@@ -416,6 +434,35 @@ final class MediaManager: ObservableObject {
     func openAutomationSettings() {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    /// Color medio de la carátula, saturado y con el brillo acotado para que
+    /// sirva de tinte sin comerse el contenido.
+    private static func dominantColor(of image: NSImage) -> Color? {
+        guard let tiff = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiff),
+              let ciImage = CIImage(bitmapImageRep: bitmap) else { return nil }
+        let filter = CIFilter(name: "CIAreaAverage", parameters: [
+            kCIInputImageKey: ciImage,
+            kCIInputExtentKey: CIVector(cgRect: ciImage.extent)
+        ])
+        guard let output = filter?.outputImage else { return nil }
+        var pixel = [UInt8](repeating: 0, count: 4)
+        let context = CIContext(options: [.workingColorSpace: NSNull()])
+        context.render(output, toBitmap: &pixel, rowBytes: 4,
+                       bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
+                       format: .RGBA8, colorSpace: nil)
+        let base = NSColor(srgbRed: CGFloat(pixel[0]) / 255,
+                           green: CGFloat(pixel[1]) / 255,
+                           blue: CGFloat(pixel[2]) / 255, alpha: 1)
+        var hue: CGFloat = 0, saturation: CGFloat = 0, brightness: CGFloat = 0, alpha: CGFloat = 0
+        base.usingColorSpace(.sRGB)?.getHue(&hue, saturation: &saturation,
+                                            brightness: &brightness, alpha: &alpha)
+        guard saturation > 0.04 else { return nil }   // carátula gris: sin tinte
+        return Color(NSColor(hue: hue,
+                             saturation: min(1, saturation * 1.7),
+                             brightness: max(0.42, min(0.8, brightness * 1.3)),
+                             alpha: 1))
     }
 
     func activateApp() {

@@ -27,24 +27,14 @@ struct SettingsView: View {
                 Text(String(format: "%.2fs", prefs.hoverOpenDelay))
                     .monospacedDigit().frame(width: 46, alignment: .trailing)
             }
-            HStack {
-                Text("Retardo de cierre")
-                Slider(value: $prefs.hoverCloseDelay, in: 0...1.2)
-                Text(String(format: "%.2fs", prefs.hoverCloseDelay))
-                    .monospacedDigit().frame(width: 46, alignment: .trailing)
-            }
-            Divider()
             Toggle("Seguir la pantalla donde está el mouse", isOn: $prefs.followMouseScreen)
             Toggle("Respuesta háptica del trackpad", isOn: $prefs.haptics)
+            Divider()
             Toggle("Ícono en la barra de menús", isOn: $prefs.showMenuBarIcon)
-            Text("Si lo apagas, la barra deja de correrse hacia la izquierda. Vuelves acá desde el engranaje de la isla.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
             Toggle("Abrir al iniciar sesión", isOn: $prefs.launchAtLogin)
                 .onChange(of: prefs.launchAtLogin) { _, enabled in
                     LoginItem.set(enabled: enabled)
                 }
-            Divider()
             HStack {
                 Button("Salir de Island Effect") { NSApp.terminate(nil) }
                 Spacer()
@@ -58,52 +48,51 @@ struct SettingsView: View {
 
     private var appearance: some View {
         Form {
+            slider("Ancho abierto", value: $prefs.expandedWidth, range: 420...900, step: 10)
+            slider("Alto abierto", value: $prefs.expandedHeight, range: 96...340, step: 2)
+            slider("Radio de esquinas", value: $prefs.cornerRadius, range: 8...40, step: 1)
+            slider("Ancho extra en reposo", value: $prefs.extraClosedWidth, range: 0...260, step: 2)
             HStack {
-                Text("Ancho abierto")
-                Slider(value: $prefs.expandedWidth, in: 420...900, step: 10)
-                Text("\(Int(prefs.expandedWidth))").monospacedDigit().frame(width: 40, alignment: .trailing)
-            }
-            HStack {
-                Text("Alto abierto")
-                Slider(value: $prefs.expandedHeight, in: 96...340, step: 2)
-                Text("\(Int(prefs.expandedHeight))").monospacedDigit().frame(width: 40, alignment: .trailing)
-            }
-            HStack {
-                Text("Radio de esquinas")
-                Slider(value: $prefs.cornerRadius, in: 8...40, step: 1)
-                Text("\(Int(prefs.cornerRadius))").monospacedDigit().frame(width: 40, alignment: .trailing)
-            }
-            HStack {
-                Text("Ancho extra en reposo")
-                Slider(value: $prefs.extraClosedWidth, in: 0...260, step: 2)
-                Text("\(Int(prefs.extraClosedWidth))").monospacedDigit().frame(width: 40, alignment: .trailing)
-            }
-            HStack {
-                Text("Contorno Liquid Glass")
+                Text("Contorno")
                 Slider(value: $prefs.rimOpacity, in: 0...1, step: 0.02)
-                Text("\(Int(prefs.rimOpacity * 100))%").monospacedDigit().frame(width: 40, alignment: .trailing)
+                Text("\(Int(prefs.rimOpacity * 100)) %")
+                    .monospacedDigit().frame(width: 46, alignment: .trailing)
             }
-            Toggle("Halo exterior del contorno", isOn: $prefs.rimGlow)
-            Toggle("Fondo translúcido al abrir", isOn: $prefs.glassBackground)
-            Toggle("Degradado sutil en el fondo", isOn: $prefs.tintedBackground)
-            Toggle("Reloj de 24 horas", isOn: $prefs.use24hClock)
         }
         .formStyle(.grouped)
+    }
+
+    private func slider(_ title: String, value: Binding<Double>,
+                        range: ClosedRange<Double>, step: Double) -> some View {
+        HStack {
+            Text(title)
+            Slider(value: value, in: range, step: step)
+            Text("\(Int(value.wrappedValue))")
+                .monospacedDigit().frame(width: 46, alignment: .trailing)
+        }
     }
 
     // MARK: Módulos
 
     private var modules: some View {
         Form {
-            Section("Pestañas") {
+            Section("Reproductor") {
                 Toggle("Música", isOn: $prefs.enableMusic)
-                Toggle("Repisa de archivos", isOn: $prefs.enableShelf)
-                Text("La repisa es un bolsillo: sueltas archivos sobre el notch, quedan ahí y los vuelves a arrastrar a donde los necesites.")
+                Toggle("Leer Spotify", isOn: $prefs.useSpotify)
+                    .disabled(!prefs.enableMusic)
+                Toggle("Leer Apple Music", isOn: $prefs.useAppleMusic)
+                    .disabled(!prefs.enableMusic)
+                Text("Apaga el que no uses: cada reproductor activo es una consulta menos y un permiso de automatización menos.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Toggle("Recordar archivos de la repisa entre sesiones", isOn: $prefs.shelfPersists)
             }
-            Section("Live activities") {
+            Section("Repisa") {
+                Toggle("Repisa de archivos", isOn: $prefs.enableShelf)
+                Text("Un bolsillo: sueltas archivos sobre el notch y los vuelves a arrastrar a donde los necesites.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Section("Avisos bajo el notch") {
                 Toggle("Cambio de canción", isOn: $prefs.liveMusic)
                 Toggle("Volumen", isOn: $prefs.liveVolume)
                 Toggle("Brillo", isOn: $prefs.liveBrightness)
@@ -112,7 +101,7 @@ struct SettingsView: View {
                     Text("Duración")
                     Slider(value: $prefs.activityDuration, in: 1...6, step: 0.2)
                     Text(String(format: "%.1fs", prefs.activityDuration))
-                        .monospacedDigit().frame(width: 44, alignment: .trailing)
+                        .monospacedDigit().frame(width: 46, alignment: .trailing)
                 }
             }
         }
@@ -124,11 +113,10 @@ struct SettingsView: View {
     private var gestures: some View {
         Form {
             Toggle("Scroll vertical sobre el notch = volumen", isOn: $prefs.scrollVolume)
-            Toggle("Scroll horizontal sobre el notch = canción anterior/siguiente", isOn: $prefs.scrollTrack)
-            Section("Otros") {
-                Label("Clic en el notch: fijar abierto o cerrar", systemImage: "cursorarrow.click")
+            Toggle("Scroll horizontal = canción anterior/siguiente", isOn: $prefs.scrollTrack)
+            Section {
+                Label("Clic en el notch: la deja abierta; otro clic la cierra", systemImage: "cursorarrow.click")
                 Label("Arrastrar archivos al notch: van a la repisa", systemImage: "tray.and.arrow.down")
-                Label("Arrastrar desde la repisa: suelta el archivo donde quieras", systemImage: "arrow.up.doc")
             }
             .foregroundStyle(.secondary)
         }
@@ -146,15 +134,10 @@ struct SettingsView: View {
                 .font(.title2.weight(.semibold))
             Text("Versión \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")")
                 .foregroundStyle(.secondary)
-            Text("Convierte el notch del Mac en una isla interactiva: música, repisa de archivos, widgets y live activities.")
+            Text("Convierte el notch del Mac en una isla interactiva: reproductor, repisa de archivos y avisos discretos.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 40)
-            Text("El \"now playing\" usa AppleScript con Música y Spotify. La primera vez macOS pedirá permiso de Automatización.")
-                .font(.caption)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.tertiary)
-                .padding(.horizontal, 30)
             Spacer()
         }
         .padding(.top, 26)

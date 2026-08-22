@@ -62,29 +62,35 @@ struct ArtworkView: View {
 }
 
 /// Barras animadas tipo ecualizador.
+///
+/// La animación es implícita (Core Animation): se declara una vez y la mueve
+/// el servidor de render. Con `TimelineView` había que reevaluar la vista 20
+/// veces por segundo, y con el vidrio y el halo detrás eso se notaba en la CPU.
 struct EqualizerBars: View {
     var active: Bool
     var tint: Color = .white
-    @State private var phase: CGFloat = 0
+    @State private var animating = false
+
+    private let speeds: [Double] = [0.52, 0.38, 0.61, 0.45]
+    private let lows: [CGFloat] = [0.30, 0.22, 0.38, 0.26]
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: !active)) { context in
-            let t = context.date.timeIntervalSinceReferenceDate
-            GeometryReader { geo in
-                HStack(alignment: .bottom, spacing: 2) {
-                    ForEach(0..<4, id: \.self) { i in
-                        let speed = [3.1, 4.3, 2.6, 3.7][i]
-                        let offset = [0.0, 1.2, 2.4, 0.7][i]
-                        let raw = active ? (sin(t * speed + offset) + 1) / 2 : 0.15
-                        let h = max(0.18, raw) * geo.size.height
-                        Capsule()
-                            .fill(tint)
-                            .frame(height: h)
-                    }
+        GeometryReader { geo in
+            HStack(alignment: .bottom, spacing: 2) {
+                ForEach(0..<4, id: \.self) { i in
+                    Capsule()
+                        .fill(tint)
+                        .frame(height: geo.size.height * ((animating && active) ? 1 : lows[i]))
+                        .animation(active
+                                   ? .easeInOut(duration: speeds[i]).repeatForever(autoreverses: true)
+                                   : .default,
+                                   value: animating)
                 }
-                .frame(maxHeight: .infinity, alignment: .bottom)
             }
+            .frame(maxHeight: .infinity, alignment: .bottom)
         }
+        .onAppear { animating = true }
+        .onDisappear { animating = false }
     }
 }
 

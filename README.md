@@ -14,15 +14,16 @@ pasar el mouse.
 **Isla que se expande**
 - En reposo es indistinguible del notch. Al pasar el mouse se abre con un
   resorte tipo Dynamic Island; al salir se cierra sola.
-- Clic en el notch = fijar abierta / cerrar. El botón de chincheta la mantiene
-  abierta mientras hagas cosas dentro.
+- Clic en el notch: la deja abierta mientras trabajas dentro; otro clic la cierra.
 - Al abrirse, el panel **cuelga por debajo de la barra de menús**: en esa fila
   solo queda el notch, así que los íconos de tus otras apps siguen visibles.
 - La ventana solo acepta clics mientras el puntero está sobre la isla
   (`ignoresMouseEvents` conmutado a 60 Hz): todo lo demás llega a la barra de
   menús como si la isla no existiera.
-- Fondo translúcido de verdad (`NSVisualEffectView`): desenfoca lo que hay
-  detrás en vez de ser un rectángulo negro.
+- **Liquid Glass del sistema** (`glassEffect`, macOS 26) teñido con el color
+  dominante de la carátula que esté sonando; en macOS 14–15 cae a
+  `NSVisualEffectView`. Los desenfoques del contorno se rasterizan en una
+  textura, que es lo que evita que animar la isla dispare la CPU.
 - Contorno tipo *Liquid Glass*: borde especular, más intenso en el canto
   inferior, con halo. Sirve para ubicar la isla cuando la barra es toda negra.
   Regulable de 0 a 100 % en Preferencias.
@@ -36,7 +37,8 @@ pasar el mouse.
 - Volumen y brillo al tocar las teclas.
 - Conexión/desconexión del cargador.
 
-**Música** — Apple Music y Spotify
+**Música** — Apple Music y Spotify, cada uno activable por separado (apagar el
+que no uses ahorra una consulta y un permiso de automatización)
 - Carátula, título, artista, barra de progreso con scrubbing, anterior/play/
   siguiente y volumen del sistema.
 - Clic en la carátula abre la app de origen.
@@ -51,14 +53,14 @@ pasar el mouse.
 - Scroll horizontal = canción anterior / siguiente.
 - Arrastrar archivos = van a la repisa.
 
-**Preferencias** (ícono de engranaje en la isla o el menú de la barra)
+**Preferencias** (engranaje de la isla o el menú de la barra)
 - Tamaño abierto (el contenido se compacta solo en los altos chicos), radio de
   esquinas, ancho extra en reposo, contorno, halo y fondo translúcido.
 - Retardos de apertura/cierre, háptica, pantalla a seguir, abrir al iniciar
   sesión y ocultar el ícono de la barra de menús (con botón de salir acá mismo).
-- Qué pestañas y qué live activities quieres, y su duración. Las activities
-  ocupan un momento el espacio a los lados del notch: si te estorban, cada una
-  se apaga por separado.
+- Qué módulos quieres (reproductor, fuentes de música, repisa) y qué avisos,
+  con su duración. Si solo dejas un módulo activo, la barra de pestañas
+  desaparece sola.
 
 ## Instalar
 
@@ -102,11 +104,18 @@ No es obligatorio: sin él la app funciona, solo pierdes el reproductor.
 Medido en un MacBook Pro M5 Pro, la app en reposo con el puntero lejos del
 notch, promediando tiempo de CPU real sobre una ventana de 45 s:
 
-| Versión | CPU | Memoria |
+| Escenario | CPU | Memoria |
 |---|---|---|
-| Antes de optimizar | 5,33 % | 125 MB |
-| Después | **0,69 %** | **57 MB** |
-| Solo la isla, sin live activities | 0,20 % | 53 MB |
+| Antes de optimizar, en reposo | 5,33 % | 125 MB |
+| **En reposo** | **0,5–0,9 %** | 57 MB |
+| Isla en reposo sin ningún aviso activo | 0,20 % | 53 MB |
+| Píldora de canción animada | 1,35 % | 69 MB |
+| Isla abierta (vidrio en vivo) | 3,40 % | 73 MB |
+
+Medir en reposo con el Mac en uso da números mucho más altos y engañosos: la
+isla se abre de verdad cada vez que el puntero roza el notch, y el vidrio
+renderiza mientras esté abierta. Las cifras de arriba son de ventanas
+tranquilas.
 
 Lo que se cambió:
 
@@ -122,9 +131,14 @@ Lo que se cambió:
 - **Brillo por evento** (`com.apple.backlight.changed`), con sondeo de respaldo
   si esa notificación no llega.
 - **Sondeo del puntero adaptativo**: 8 Hz lejos del borde superior, 30 Hz cerca
-  del notch o con la isla abierta, en vez de 60 Hz constantes. El trabajo real
-  va por monitores de eventos; el temporizador es solo la red para apps a
-  pantalla completa.
+  del notch o con la isla abierta, en vez de 60 Hz constantes, con salida
+  temprana en el camino caliente. El trabajo real va por monitores de eventos;
+  el temporizador es solo la red para apps a pantalla completa.
+- **El contorno se rasteriza** (`drawingGroup`): sus desenfoques se recalculaban
+  en cada fotograma y con la píldora animada la CPU se iba por encima del 15 %.
+  El vidrio queda fuera de esa textura porque no sobrevive a un `drawingGroup`.
+- **Ecualizador por Core Animation** en vez de `TimelineView`, para no
+  reevaluar la vista veinte veces por segundo.
 
 ### Limitaciones conocidas
 

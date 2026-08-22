@@ -76,7 +76,22 @@ final class NotchController {
     /// Cerrada: solo el notch (las alas de las live activities no deben robar
     /// clics a los íconos de la barra de menús).
     /// Abierta: el notch más el panel que cuelga por debajo.
+    private var cachedRects: (key: String, rects: [CGRect])?
+
+    private func rectsCacheKey(_ padding: CGFloat) -> String {
+        let board = viewModel.boardSize ?? .zero
+        return "\(padding)|\(viewModel.notchDrawnSize)|\(board)|\(currentScreen.frame)"
+    }
+
     private func islandRects(padding: CGFloat = 0) -> [CGRect] {
+        let key = rectsCacheKey(padding)
+        if let cached = cachedRects, cached.key == key { return cached.rects }
+        let rects = computeIslandRects(padding: padding)
+        cachedRects = (key, rects)
+        return rects
+    }
+
+    private func computeIslandRects(padding: CGFloat) -> [CGRect] {
         let screen = currentScreen
         // Para el ratón usamos el notch FÍSICO, no el dibujado: así el par de
         // puntos de más que ocupa el contorno no le roba clics a la barra.
@@ -220,6 +235,14 @@ final class NotchController {
         let nearTop = location.y > currentScreen.frame.maxY - 220
         setPollRate(nearTop || viewModel.isOpen || viewModel.isHovering ? activeRate : idleRate)
 
+        // Camino rápido: con el puntero lejos y la isla en reposo no hay nada
+        // que hacer. Este método corre con cada movimiento del mouse.
+        if !nearTop, !viewModel.isOpen, !viewModel.isHovering {
+            if panel?.ignoresMouseEvents == false { panel?.ignoresMouseEvents = true }
+            lastMouseLocation = location
+            return
+        }
+
         if location == lastMouseLocation, !viewModel.isOpen, !viewModel.isHovering,
            panel?.ignoresMouseEvents == true { return }
         lastMouseLocation = location
@@ -274,7 +297,7 @@ final class NotchController {
                 withAnimation(.island) { self.viewModel.close() }
             }
             closeWork = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + prefs.hoverCloseDelay, execute: work)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: work)
         }
     }
 

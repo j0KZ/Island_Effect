@@ -11,15 +11,11 @@ final class Prefs: ObservableObject {
     @Published var expandedHeight: Double { didSet { d.set(expandedHeight, forKey: K.expandedHeight) } }
     @Published var cornerRadius: Double { didSet { d.set(cornerRadius, forKey: K.cornerRadius) } }
     @Published var extraClosedWidth: Double { didSet { d.set(extraClosedWidth, forKey: K.extraClosedWidth) } }
-    @Published var tintedBackground: Bool { didSet { d.set(tintedBackground, forKey: K.tintedBackground) } }
     @Published var rimOpacity: Double { didSet { d.set(rimOpacity, forKey: K.rimOpacity) } }
-    @Published var rimGlow: Bool { didSet { d.set(rimGlow, forKey: K.rimGlow) } }
-    @Published var glassBackground: Bool { didSet { d.set(glassBackground, forKey: K.glassBackground) } }
 
     // Comportamiento
     @Published var openOnHover: Bool { didSet { d.set(openOnHover, forKey: K.openOnHover) } }
     @Published var hoverOpenDelay: Double { didSet { d.set(hoverOpenDelay, forKey: K.hoverOpenDelay) } }
-    @Published var hoverCloseDelay: Double { didSet { d.set(hoverCloseDelay, forKey: K.hoverCloseDelay) } }
     @Published var followMouseScreen: Bool { didSet { d.set(followMouseScreen, forKey: K.followMouseScreen) } }
     @Published var haptics: Bool { didSet { d.set(haptics, forKey: K.haptics) } }
     @Published var showMenuBarIcon: Bool { didSet { d.set(showMenuBarIcon, forKey: K.showMenuBarIcon) } }
@@ -38,8 +34,8 @@ final class Prefs: ObservableObject {
     // Módulos
     @Published var enableMusic: Bool { didSet { d.set(enableMusic, forKey: K.enableMusic) } }
     @Published var enableShelf: Bool { didSet { d.set(enableShelf, forKey: K.enableShelf) } }
-    @Published var shelfPersists: Bool { didSet { d.set(shelfPersists, forKey: K.shelfPersists) } }
-    @Published var use24hClock: Bool { didSet { d.set(use24hClock, forKey: K.use24hClock) } }
+    @Published var useAppleMusic: Bool { didSet { d.set(useAppleMusic, forKey: K.useAppleMusic) } }
+    @Published var useSpotify: Bool { didSet { d.set(useSpotify, forKey: K.useSpotify) } }
 
     @Published var launchAtLogin: Bool { didSet { d.set(launchAtLogin, forKey: K.launchAtLogin) } }
 
@@ -48,13 +44,9 @@ final class Prefs: ObservableObject {
         static let expandedHeight = "expandedHeight"
         static let cornerRadius = "cornerRadius"
         static let extraClosedWidth = "extraClosedWidth"
-        static let tintedBackground = "tintedBackground"
         static let rimOpacity = "rimOpacity"
-        static let rimGlow = "rimGlow"
-        static let glassBackground = "glassBackground"
         static let openOnHover = "openOnHover"
         static let hoverOpenDelay = "hoverOpenDelay"
-        static let hoverCloseDelay = "hoverCloseDelay"
         static let followMouseScreen = "followMouseScreen"
         static let haptics = "haptics"
         static let showMenuBarIcon = "showMenuBarIcon"
@@ -67,8 +59,8 @@ final class Prefs: ObservableObject {
         static let activityDuration = "activityDuration"
         static let enableMusic = "enableMusic"
         static let enableShelf = "enableShelf"
-        static let shelfPersists = "shelfPersists"
-        static let use24hClock = "use24hClock"
+        static let useAppleMusic = "useAppleMusic"
+        static let useSpotify = "useSpotify"
         static let launchAtLogin = "launchAtLogin"
     }
 
@@ -78,13 +70,9 @@ final class Prefs: ObservableObject {
             K.expandedHeight: 200.0,
             K.cornerRadius: 22.0,
             K.extraClosedWidth: 0.0,
-            K.tintedBackground: true,
             K.rimOpacity: 0.85,
-            K.rimGlow: true,
-            K.glassBackground: true,
             K.openOnHover: true,
             K.hoverOpenDelay: 0.18,
-            K.hoverCloseDelay: 0.25,
             K.followMouseScreen: true,
             K.haptics: true,
             K.showMenuBarIcon: true,
@@ -97,21 +85,17 @@ final class Prefs: ObservableObject {
             K.activityDuration: 2.2,
             K.enableMusic: true,
             K.enableShelf: true,
-            K.shelfPersists: true,
-            K.use24hClock: true,
+            K.useAppleMusic: true,
+            K.useSpotify: true,
             K.launchAtLogin: false
         ])
         expandedWidth = d.double(forKey: K.expandedWidth)
         expandedHeight = d.double(forKey: K.expandedHeight)
         cornerRadius = d.double(forKey: K.cornerRadius)
         extraClosedWidth = d.double(forKey: K.extraClosedWidth)
-        tintedBackground = d.bool(forKey: K.tintedBackground)
         rimOpacity = d.double(forKey: K.rimOpacity)
-        rimGlow = d.bool(forKey: K.rimGlow)
-        glassBackground = d.bool(forKey: K.glassBackground)
         openOnHover = d.bool(forKey: K.openOnHover)
         hoverOpenDelay = d.double(forKey: K.hoverOpenDelay)
-        hoverCloseDelay = d.double(forKey: K.hoverCloseDelay)
         followMouseScreen = d.bool(forKey: K.followMouseScreen)
         haptics = d.bool(forKey: K.haptics)
         showMenuBarIcon = d.bool(forKey: K.showMenuBarIcon)
@@ -124,31 +108,27 @@ final class Prefs: ObservableObject {
         activityDuration = d.double(forKey: K.activityDuration)
         enableMusic = d.bool(forKey: K.enableMusic)
         enableShelf = d.bool(forKey: K.enableShelf)
-        shelfPersists = d.bool(forKey: K.shelfPersists)
-        use24hClock = d.bool(forKey: K.use24hClock)
+        useAppleMusic = d.bool(forKey: K.useAppleMusic)
+        useSpotify = d.bool(forKey: K.useSpotify)
         launchAtLogin = d.bool(forKey: K.launchAtLogin)
     }
 
     func resetToDefaults() {
         for key in [K.expandedWidth, K.expandedHeight, K.cornerRadius, K.extraClosedWidth,
-                    K.tintedBackground, K.rimOpacity, K.rimGlow, K.glassBackground, K.openOnHover, K.hoverOpenDelay, K.hoverCloseDelay,
+                    K.rimOpacity, K.openOnHover, K.hoverOpenDelay,
                     K.followMouseScreen, K.haptics, K.showMenuBarIcon, K.scrollVolume, K.scrollTrack,
                     K.liveMusic, K.liveVolume, K.liveBrightness, K.liveBattery,
-                    K.activityDuration, K.enableMusic, K.enableShelf,
-                    K.shelfPersists, K.use24hClock] {
+                    K.activityDuration, K.enableMusic, K.enableShelf, K.useAppleMusic, K.useSpotify,
+                    K.useAppleMusic, K.useSpotify] {
             d.removeObject(forKey: key)
         }
         expandedWidth = d.double(forKey: K.expandedWidth)
         expandedHeight = d.double(forKey: K.expandedHeight)
         cornerRadius = d.double(forKey: K.cornerRadius)
         extraClosedWidth = d.double(forKey: K.extraClosedWidth)
-        tintedBackground = d.bool(forKey: K.tintedBackground)
         rimOpacity = d.double(forKey: K.rimOpacity)
-        rimGlow = d.bool(forKey: K.rimGlow)
-        glassBackground = d.bool(forKey: K.glassBackground)
         openOnHover = d.bool(forKey: K.openOnHover)
         hoverOpenDelay = d.double(forKey: K.hoverOpenDelay)
-        hoverCloseDelay = d.double(forKey: K.hoverCloseDelay)
         followMouseScreen = d.bool(forKey: K.followMouseScreen)
         haptics = d.bool(forKey: K.haptics)
         showMenuBarIcon = d.bool(forKey: K.showMenuBarIcon)
@@ -161,7 +141,7 @@ final class Prefs: ObservableObject {
         activityDuration = d.double(forKey: K.activityDuration)
         enableMusic = d.bool(forKey: K.enableMusic)
         enableShelf = d.bool(forKey: K.enableShelf)
-        shelfPersists = d.bool(forKey: K.shelfPersists)
-        use24hClock = d.bool(forKey: K.use24hClock)
+        useAppleMusic = d.bool(forKey: K.useAppleMusic)
+        useSpotify = d.bool(forKey: K.useSpotify)
     }
 }

@@ -81,14 +81,12 @@ final class ShelfStore: ObservableObject {
     // MARK: - Persistencia
 
     private func save() {
-        guard Prefs.shared.shelfPersists else { return }
         let paths = items.map { $0.url.path }
         UserDefaults.standard.set(paths, forKey: key)
     }
 
     private func load() {
-        guard Prefs.shared.shelfPersists,
-              let paths = UserDefaults.standard.stringArray(forKey: key) else { return }
+        guard let paths = UserDefaults.standard.stringArray(forKey: key) else { return }
         items = paths
             .filter { FileManager.default.fileExists(atPath: $0) }
             .map { ShelfItem(url: URL(fileURLWithPath: $0)) }

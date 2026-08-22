@@ -34,8 +34,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 Task { @MainActor in
                     NotchController.shared.viewModel.show(
                         .music(title: "Me & Nas Bring It To Your Hardest",
-                               subtitle: "Slick Rick", playing: true), duration: 8)
+                               subtitle: "Slick Rick", playing: true), duration: 90)
                 }
+            }
+        }
+
+        if ProcessInfo.processInfo.environment["ISLAND_OPEN"] == "1" {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                Task { @MainActor in NotchController.shared.openTab(.music) }
             }
         }
 

@@ -78,16 +78,39 @@ final class NotchViewModel: ObservableObject {
         return nil
     }
 
-    /// Píldora discreta bajo el notch para cada tipo de aviso.
+    /// Píldora discreta bajo el notch. El ancho se ajusta al texto: con un
+    /// ancho fijo los títulos largos quedaban cortados a media palabra.
     static func activitySize(for activity: LiveActivity) -> CGSize {
         switch activity {
-        // Nunca más angostas que la columna del notch: si no, el filete se
-        // invierte y el encuentro entre notch y píldora se ve roto.
-        case .music: return CGSize(width: 300, height: 40)
-        case .volume, .brightness: return CGSize(width: 264, height: 30)
-        case .battery: return CGSize(width: 272, height: 30)
-        case .message: return CGSize(width: 280, height: 30)
+        case .music(let title, let subtitle, _):
+            let text = max(textWidth(title, size: 11, weight: .semibold),
+                           textWidth(subtitle, size: 9.5, weight: .regular))
+            // 20 de márgenes + 24 carátula + 18 ecualizador + 3 huecos de 8 + holgura
+            return CGSize(width: clampWidth(98 + text), height: 40)
+        case .volume, .brightness:
+            return CGSize(width: 264, height: 30)
+        case .battery(let percent, let plugged, let charging):
+            let label = charging ? "Cargando" : (plugged ? "Conectado" : "Con batería")
+            let text = textWidth(label, size: 11, weight: .medium)
+                + textWidth(" \(percent) %", size: 11, weight: .semibold)
+            return CGSize(width: clampWidth(86 + text), height: 30)
+        case .message(let content, _, _):
+            return CGSize(width: clampWidth(72 + textWidth(content, size: 11, weight: .medium)),
+                          height: 30)
         }
+    }
+
+    /// Ancho de un texto con la fuente del sistema, para dimensionar la píldora.
+    private static func textWidth(_ string: String, size: CGFloat, weight: NSFont.Weight) -> CGFloat {
+        guard !string.isEmpty else { return 0 }
+        let font = NSFont.systemFont(ofSize: size, weight: weight)
+        return ceil((string as NSString).size(withAttributes: [.font: font]).width)
+    }
+
+    /// Nunca más angosta que la columna del notch (el filete se invertiría) ni
+    /// tan ancha que invada media pantalla.
+    private static func clampWidth(_ width: CGFloat) -> CGFloat {
+        min(460, max(264, width))
     }
 
     var currentSize: CGSize {

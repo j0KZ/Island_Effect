@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 struct RootView: View {
     @ObservedObject var vm: NotchViewModel
     @ObservedObject var prefs = Prefs.shared
+    @ObservedObject private var media = MediaManager.shared
     @State private var dropTargeted = false
 
     var body: some View {
@@ -67,32 +68,49 @@ struct RootView: View {
         let shape = self.shape
         return ZStack {
             if useGlass {
-                // Vidrio real: desenfoca lo que hay detrás, como una isla de verdad.
-                GlassBackground(material: .hudWindow)
-                    .clipShape(shape)
-                shape.fill(Color.black.opacity(0.18))
+                if #available(macOS 26.0, *) {
+                    // Liquid Glass del sistema: lente en los bordes, reflejo
+                    // especular y tinte, en vez de imitarlo a mano.
+                    Color.clear
+                        .glassEffect(.regular.tint(glassTint), in: shape)
+                    shape.fill(Color.black.opacity(0.10))
+                } else {
+                    GlassBackground(material: .hudWindow)
+                        .clipShape(shape)
+                    shape.fill(Color.black.opacity(0.18))
+                }
             } else {
                 shape.fill(Color.black)
             }
 
-            if prefs.tintedBackground {
-                shape.fill(
-                    LinearGradient(colors: [Color.white.opacity(0.08), Color.white.opacity(0)],
-                                   startPoint: .top, endPoint: .bottom)
-                )
-            }
+            shape.fill(
+                LinearGradient(colors: [Color.white.opacity(0.07), Color.white.opacity(0)],
+                               startPoint: .top, endPoint: .bottom)
+            )
 
+            // Los desenfoques del contorno se rasterizan en una sola textura:
+            // recalcularlos en cada fotograma disparaba la CPU al animar.
+            // (El vidrio queda fuera del drawingGroup: no sobrevive a él.)
+            rim(shape: shape)
+                .drawingGroup()
+        }
+        .shadow(color: .black.opacity(vm.isOpen ? 0.6 : (vm.activity != nil ? 0.25 : 0)),
+                radius: vm.isOpen ? 22 : 6, x: 0, y: vm.isOpen ? 10 : 3)
+        .animation(.easeOut(duration: 0.18), value: rimStrength)
+    }
+
+    private func rim(shape: IslandShape) -> some View {
+        ZStack {
             // Halo exterior difuso: lo que hace que la isla se ubique de un vistazo.
             shape.stroke(rimGradient, lineWidth: 3.4)
                 .blur(radius: 3.2)
-                .opacity(prefs.rimGlow ? rimStrength * 0.6 : 0)
+                .opacity(rimStrength * 0.6)
 
             // Borde especular nítido, todo el contorno.
             shape.stroke(rimGradient, lineWidth: 1.4)
                 .opacity(rimStrength)
 
-            // Grosor del vidrio: un realce discreto en el canto inferior, sin
-            // que se coma al resto del contorno.
+            // Grosor del vidrio: un realce discreto en el canto inferior.
             shape.stroke(Color.white.opacity(0.5), lineWidth: 2.0)
                 .blur(radius: 2)
                 .mask(LinearGradient(colors: [.clear, .black], startPoint: .center, endPoint: .bottom))
@@ -103,13 +121,17 @@ struct RootView: View {
                 .opacity(rimStrength * 0.32)
                 .blendMode(.plusLighter)
         }
-        .shadow(color: .black.opacity(vm.isOpen ? 0.6 : (vm.activity != nil ? 0.25 : 0)),
-                radius: vm.isOpen ? 22 : 6, x: 0, y: vm.isOpen ? 10 : 3)
-        .animation(.easeOut(duration: 0.18), value: rimStrength)
     }
 
-    /// El vidrio solo al abrir: en reposo la isla debe fundirse con el notch.
-    private var useGlass: Bool { prefs.glassBackground && vm.isOpen }
+    /// Vidrio al abrir y en los avisos; en reposo la isla debe fundirse con
+    /// el notch, así que ahí va negra.
+    private var useGlass: Bool { vm.isOpen || vm.activity != nil }
+
+    /// Tinte tomado de la carátula: es lo que hace que se lea como
+    /// "Liquid Glass tinted" y no como un panel oscuro cualquiera.
+    private var glassTint: Color {
+        (media.artworkTint ?? Color.white).opacity(0.26)
+    }
 
     /// Intensidad del contorno según el estado: siempre visible, un poco más al pasar el mouse.
     private var rimStrength: Double {
@@ -134,11 +156,12 @@ struct RootView: View {
     }
 
     private var rimTint: LinearGradient {
-        LinearGradient(colors: [
-            Color(red: 0.40, green: 0.78, blue: 1.00),
+        let accent = media.artworkTint
+        return LinearGradient(colors: [
+            accent ?? Color(red: 0.40, green: 0.78, blue: 1.00),
             .clear,
             .clear,
-            Color(red: 0.78, green: 0.55, blue: 1.00)
+            accent ?? Color(red: 0.78, green: 0.55, blue: 1.00)
         ], startPoint: .leading, endPoint: .trailing)
     }
 
@@ -197,7 +220,8 @@ struct ActivityBar: View {
         HStack(spacing: 8) {
             leading
             text
-            Spacer(minLength: 4)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 6)
             trailing
         }
         .padding(.horizontal, 10)
@@ -255,7 +279,7 @@ struct ActivityBar: View {
         switch activity {
         case .music(_, _, let playing):
             EqualizerBars(active: playing)
-                .frame(width: 16, height: 11)
+                .frame(width: 18, height: 12)
         case .volume(let value, let muted):
             MiniBar(value: muted ? 0 : Double(value))
         case .brightness(let value):
@@ -296,7 +320,7 @@ struct OpenView: View {
             header
                 .frame(height: compact ? 24 : 30)
             Divider().overlay(Color.white.opacity(0.08))
-            body(for: vm.tab)
+            body(for: currentTab)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal, compact ? 10 : 14)
                 .padding(.vertical, compact ? 7 : 12)
@@ -307,6 +331,12 @@ struct OpenView: View {
     /// Con el panel bajo, cabecera y márgenes se encogen para dejarle sitio
     /// al contenido.
     private var compact: Bool { prefs.expandedHeight < 150 }
+
+    /// Si la pestaña activa se desactivó en Preferencias, caemos en la primera
+    /// disponible en vez de mostrar algo que ya no existe.
+    private var currentTab: NotchTab {
+        availableTabs.contains(vm.tab) ? vm.tab : (availableTabs.first ?? .music)
+    }
 
     private var availableTabs: [NotchTab] {
         NotchTab.allCases.filter {
@@ -321,26 +351,13 @@ struct OpenView: View {
         HStack(spacing: 8) {
             Spacer(minLength: 0)
             HStack(spacing: 4) {
-                ForEach(availableTabs) { tab in
-                    TabButton(tab: tab, selected: vm.tab == tab) {
-                        withAnimation(.islandFast) { vm.tab = tab }
+                if availableTabs.count > 1 {
+                    ForEach(availableTabs) { tab in
+                        TabButton(tab: tab, selected: currentTab == tab) {
+                            withAnimation(.islandFast) { vm.tab = tab }
+                        }
                     }
                 }
-                Button {
-                    withAnimation(.islandFast) { vm.isPinned.toggle() }
-                } label: {
-                    Image(systemName: vm.isPinned ? "pin.fill" : "pin")
-                        .font(.system(size: 10, weight: .semibold))
-                        .frame(width: 24, height: 20)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(Color.accentColor.opacity(vm.isPinned ? 0.85 : 0))
-                        )
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(vm.isPinned ? .white : .white.opacity(0.45))
-                .help(vm.isPinned ? "Fijada: no se cierra al alejar el mouse" : "Fijar abierta")
-
                 Button {
                     AppDelegate.shared?.showSettings()
                 } label: {
