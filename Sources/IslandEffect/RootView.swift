@@ -91,11 +91,12 @@ struct RootView: View {
             shape.stroke(rimGradient, lineWidth: 1.4)
                 .opacity(rimStrength)
 
-            // Grosor del vidrio: brillo interior pegado al canto inferior.
-            shape.stroke(Color.white.opacity(0.6), lineWidth: 2.2)
+            // Grosor del vidrio: un realce discreto en el canto inferior, sin
+            // que se coma al resto del contorno.
+            shape.stroke(Color.white.opacity(0.5), lineWidth: 2.0)
                 .blur(radius: 2)
                 .mask(LinearGradient(colors: [.clear, .black], startPoint: .center, endPoint: .bottom))
-                .opacity(rimStrength * 0.8)
+                .opacity(rimStrength * 0.45)
 
             // Refracción cromática apenas insinuada en los extremos.
             shape.stroke(rimTint, lineWidth: 1.4)
@@ -119,11 +120,15 @@ struct RootView: View {
     }
 
     /// Blanco especular: tenue arriba, intenso en el borde inferior (luz cenital).
+    /// Blanco especular. Antes caía casi a cero arriba y solo se veía el canto
+    /// inferior; ahora recorre todo el contorno —incluido el del notch, que es
+    /// lo que separa visualmente la cámara del panel— con un realce abajo.
     private var rimGradient: LinearGradient {
         LinearGradient(stops: [
-            .init(color: .white.opacity(0.45), location: 0.00),
-            .init(color: .white.opacity(0.28), location: 0.28),
-            .init(color: .white.opacity(0.70), location: 0.72),
+            .init(color: .white.opacity(0.72), location: 0.00),
+            .init(color: .white.opacity(0.62), location: 0.30),
+            .init(color: .white.opacity(0.70), location: 0.62),
+            .init(color: .white.opacity(0.88), location: 0.88),
             .init(color: .white.opacity(1.00), location: 1.00)
         ], startPoint: .top, endPoint: .bottom)
     }
