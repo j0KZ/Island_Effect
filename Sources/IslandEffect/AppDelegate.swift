@@ -20,6 +20,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         NotchController.shared.start()
         syncStatusItem()
+
+        // Si la app se movió de sitio (por ejemplo de build/ a /Applications),
+        // el ítem de inicio seguiría apuntando a la ruta vieja: se vuelve a
+        // registrar el bundle actual.
+        if Prefs.shared.launchAtLogin { LoginItem.set(enabled: true) }
         IslandDebug.log(String(format: "isla lista en %.0f ms", Date().timeIntervalSince(launchStart) * 1000))
 
         // El ícono de la barra empuja los demás: que se pueda quitar.
