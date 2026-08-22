@@ -98,8 +98,8 @@ struct MusicView: View {
                                 scrubber.frame(height: 10)
                                 Text(TimeFormat.clock(info.duration))
                             }
-                            .font(.system(size: 9, weight: .medium, design: .rounded).monospacedDigit())
-                            .foregroundStyle(.white.opacity(0.5))
+                            .font(.system(size: 12, weight: .semibold, design: .rounded).monospacedDigit())
+                            .foregroundStyle(.white.opacity(0.7))
                         } else {
                             scrubber.frame(height: 10)
                             HStack {
@@ -112,8 +112,8 @@ struct MusicView: View {
                                 }
                                 Text(TimeFormat.clock(info.duration))
                             }
-                            .font(.system(size: 9, weight: .medium, design: .rounded).monospacedDigit())
-                            .foregroundStyle(.white.opacity(0.45))
+                            .font(.system(size: 11.5, weight: .semibold, design: .rounded).monospacedDigit())
+                            .foregroundStyle(.white.opacity(0.6))
                         }
                     }
 

@@ -315,8 +315,8 @@ struct ActivityBar: View {
                 EqualizerBars(active: playing)
                     .frame(width: 18, height: 11)
                 Text(TimeFormat.clock(elapsed))
-                    .font(.system(size: 9, weight: .medium, design: .rounded).monospacedDigit())
-                    .foregroundStyle(.white.opacity(0.6))
+                    .font(.system(size: 11, weight: .semibold, design: .rounded).monospacedDigit())
+                    .foregroundStyle(.white.opacity(0.7))
             }
         case .battery(let percent, _, _):
             Text("\(percent) %")
