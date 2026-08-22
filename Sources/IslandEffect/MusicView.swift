@@ -73,7 +73,7 @@ struct MusicView: View {
                     Spacer(minLength: compact ? 5 : 10)
 
                     VStack(spacing: 4) {
-                        IslandSlider(
+                        let scrubber = IslandSlider(
                             value: Binding(
                                 get: { scrubbing ? scrubValue : displayElapsed },
                                 set: { scrubValue = $0 }
@@ -88,9 +88,20 @@ struct MusicView: View {
                                 }
                             }
                         )
-                        .frame(height: 10)
 
-                        if !tiny {
+                        if tiny {
+                            // Sin sitio para una fila aparte: los tiempos van a
+                            // los lados de la barra, que es lo que se pierde si
+                            // se ocultan.
+                            HStack(spacing: 6) {
+                                Text(TimeFormat.clock(scrubbing ? scrubValue : displayElapsed))
+                                scrubber.frame(height: 10)
+                                Text(TimeFormat.clock(info.duration))
+                            }
+                            .font(.system(size: 9, weight: .medium, design: .rounded).monospacedDigit())
+                            .foregroundStyle(.white.opacity(0.5))
+                        } else {
+                            scrubber.frame(height: 10)
                             HStack {
                                 Text(TimeFormat.clock(scrubbing ? scrubValue : displayElapsed))
                                 Spacer()
