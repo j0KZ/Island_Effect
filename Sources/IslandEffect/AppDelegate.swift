@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         NotchController.shared.start()
         syncStatusItem()
+        IslandDebug.log(String(format: "isla lista en %.0f ms", Date().timeIntervalSince(launchStart) * 1000))
 
         // El ícono de la barra empuja los demás: que se pueda quitar.
         Prefs.shared.$showMenuBarIcon

@@ -106,20 +106,31 @@ No es obligatorio: sin él la app funciona, solo pierdes el reproductor.
 
 ### Rendimiento
 
-Medido en un MacBook Pro M5 Pro, la app en reposo con el puntero lejos del
-notch, promediando tiempo de CPU real sobre una ventana de 45 s:
+Medido en un MacBook Pro M5 Pro, promediando tiempo de CPU real (delta de
+`cputime` sobre tiempo de reloj; `ps %cpu` no sirve, promedia desde el arranque
+del proceso e incluye el pico de lanzamiento).
 
 | Escenario | CPU | Memoria |
 |---|---|---|
-| Antes de optimizar, en reposo | 5,33 % | 125 MB |
-| **En reposo** | **0,40 %** | 73 MB |
-| Píldora de canción animada | 1,35 % | 69 MB |
-| Isla abierta (vidrio en vivo) | 3,40 % | 73 MB |
+| **Reposo**, sin ningún aviso | **0,40 %** | 72 MB |
+| Reposo con un cambio de canción en la ventana | 0,93 % | 72 MB |
+| Píldora de canción animada | 1,35 – 3,15 % | 76 MB |
+| Isla abierta, pantalla quieta detrás | 1,63 % | 73 MB |
+| Isla abierta, contenido cambiando detrás | 5,04 % | 71 MB |
+| *(referencia: antes de optimizar, en reposo)* | *5,33 %* | *125 MB* |
 
-Medir en reposo con el Mac en uso da números mucho más altos y engañosos: la
-isla se abre de verdad cada vez que el puntero roza el notch, y el vidrio
-renderiza mientras esté abierta. Las cifras de arriba son de ventanas
-tranquilas.
+Arranque en frío: **~130 ms** desde el lanzamiento hasta la isla montada y
+escuchando (tres medidas: 128, 129, 130 ms). Binario 1,3 MB, bundle 1,6 MB,
+10 hilos.
+
+Los dos escenarios de isla abierta son el mismo código: el material translúcido
+vuelve a muestrear lo que tiene detrás cada vez que eso cambia, así que sobre un
+escritorio quieto cuesta un tercio que sobre una terminal escupiendo texto. Es
+inherente a cualquier cosa translúcida, incluido el propio macOS.
+
+Medir el reposo con el Mac en uso da números engañosos: la isla se abre de
+verdad cada vez que el puntero roza el notch. Las cifras de arriba se tomaron
+verificando en el log que hubo cero aperturas durante la ventana.
 
 Lo que se cambió:
 
