@@ -53,10 +53,14 @@ que no uses ahorra una consulta y un permiso de automatización)
   quieras, o usa abrir / mostrar en Finder / copiar ruta.
 - Persiste entre sesiones.
 
-**Gestos sobre el notch**
-- Scroll vertical = volumen.
-- Scroll horizontal = canción anterior / siguiente.
-- Arrastrar archivos = van a la repisa.
+**Cómo se usa**
+- Pasa el mouse por el notch para abrirla.
+- Clic: se queda abierta; otro clic la cierra.
+- Arrastra archivos al notch y van a la repisa.
+
+No hay gestos de scroll para volumen ni para cambiar de canción: eso ya está en
+las teclas del Mac, y sostenerlo obligaba a un monitor global de scroll que
+despertaba el proceso con cada scroll del sistema.
 
 **Preferencias** (engranaje de la isla o el menú de la barra)
 - Tamaño abierto (el contenido se compacta solo en los altos chicos), radio de
@@ -66,6 +70,8 @@ que no uses ahorra una consulta y un permiso de automatización)
 - Qué módulos quieres (reproductor, fuentes de música, repisa) y qué avisos,
   con su duración. Si solo dejas un módulo activo, la barra de pestañas
   desaparece sola.
+
+Son cuatro pestañas: General, Apariencia, Módulos y Acerca de.
 
 ## Instalar
 
@@ -164,6 +170,11 @@ Lo que se cambió:
 - **Sin vigilancia de volumen ni de brillo.** Eran dos sondeos permanentes para
   duplicar avisos que el sistema ya da. Además el brillo automático del Mac
   hace microajustes constantes: la píldora salía sola varias veces por minuto.
+- **Sin monitor global de scroll.** Los gestos de scroll sobre el notch exigían
+  escuchar todos los eventos de scroll del sistema; se quitaron por inútiles
+  (el teclado ya hace eso) y con ellos ese despertar constante.
+- **Batería por notificación de IOKit** en vez de sondeo cada 5 s: el aviso de
+  carga ya no llega cinco segundos tarde y desaparece otro temporizador.
 - **Sondeo del puntero adaptativo**: 8 Hz lejos del borde superior, 30 Hz cerca
   del notch o con la isla abierta, en vez de 60 Hz constantes, con salida
   temprana en el camino caliente. El trabajo real va por monitores de eventos;

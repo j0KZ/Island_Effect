@@ -19,8 +19,6 @@ final class NotchController {
     private var currentPollRate: Double = 0
     private var lastMouseLocation = CGPoint(x: -1, y: -1)
     private var suppressUntil = Date.distantPast
-    private var lastScrollAt = Date.distantPast
-    private var scrollAccumulator: CGFloat = 0
 
     /// Margen transparente alrededor del contenido (para sombras y para tener área de hover).
     private let margin: CGFloat = 60
@@ -186,10 +184,6 @@ final class NotchController {
         // nada bajo apps a pantalla completa. Lento salvo cerca del notch.
         setPollRate(idleRate)
 
-        if let g = NSEvent.addGlobalMonitorForEvents(matching: [.scrollWheel], handler: { [weak self] event in
-            Task { @MainActor in self?.handleScroll(event) }
-        }) { monitors.append(g) }
-
         // Cierra al hacer clic fuera de la isla abierta.
         if let g = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown], handler: { [weak self] _ in
             Task { @MainActor in
@@ -288,32 +282,6 @@ final class NotchController {
             }
             closeWork = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: work)
-        }
-    }
-
-    private func handleScroll(_ event: NSEvent) {
-        guard !viewModel.isOpen else { return }
-        guard isInsideIsland(NSEvent.mouseLocation, padding: hoverPadding) else { return }
-
-        let dy = event.scrollingDeltaY
-        let dx = event.scrollingDeltaX
-
-        if prefs.scrollVolume, abs(dy) > abs(dx), abs(dy) > 0.05 {
-            let step = Float(dy) * (event.hasPreciseScrollingDeltas ? 0.004 : 0.03)
-            let target = VolumeMonitor.shared.readVolume() + step
-            // Sin aviso propio: macOS ya muestra el suyo al cambiar el volumen.
-            VolumeMonitor.shared.setVolume(target)
-            return
-        }
-
-        if prefs.scrollTrack, abs(dx) > abs(dy), abs(dx) > 0.5 {
-            scrollAccumulator += dx
-            guard Date().timeIntervalSince(lastScrollAt) > 0.6, abs(scrollAccumulator) > 28 else { return }
-            lastScrollAt = Date()
-            let forward = scrollAccumulator < 0
-            scrollAccumulator = 0
-            guard MediaManager.shared.info.isActive else { return }
-            if forward { MediaManager.shared.next() } else { MediaManager.shared.previous() }
         }
     }
 

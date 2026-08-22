@@ -10,7 +10,6 @@ struct SettingsView: View {
             general.tabItem { Label("General", systemImage: "gearshape") }
             appearance.tabItem { Label("Appearance", systemImage: "paintbrush") }
             modules.tabItem { Label("Modules", systemImage: "square.grid.2x2") }
-            gestures.tabItem { Label("Gestures", systemImage: "hand.draw") }
             about.tabItem { Label("About", systemImage: "info.circle") }
         }
         .frame(width: 460, height: 380)
@@ -109,21 +108,6 @@ struct SettingsView: View {
         .formStyle(.grouped)
     }
 
-    // MARK: Gestos
-
-    private var gestures: some View {
-        Form {
-            Toggle("Vertical scroll over the notch = volume", isOn: $prefs.scrollVolume)
-            Toggle("Horizontal scroll = previous/next track", isOn: $prefs.scrollTrack)
-            Section {
-                Label("Click the notch: it stays open; click again to close", systemImage: "cursorarrow.click")
-                Label("Drag files onto the notch: they go to the shelf", systemImage: "tray.and.arrow.down")
-            }
-            .foregroundStyle(.secondary)
-        }
-        .formStyle(.grouped)
-    }
-
     // MARK: Acerca de
 
     private var about: some View {
@@ -139,6 +123,14 @@ struct SettingsView: View {
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 40)
+            VStack(alignment: .leading, spacing: 5) {
+                Label("Hover the notch to open it", systemImage: "cursorarrow")
+                Label("Click it and it stays open; click again to close", systemImage: "cursorarrow.click")
+                Label("Drag files onto the notch: they go to the shelf", systemImage: "tray.and.arrow.down")
+            }
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .padding(.top, 4)
             Spacer()
             VStack(spacing: 3) {
                 Text("Made by j0KZ")
