@@ -240,8 +240,6 @@ struct ActivityBar: View {
         case .battery(_, let plugged, let charging):
             symbol(charging ? "battery.100.bolt" : (plugged ? "powerplug.fill" : "battery.50"),
                    tint: charging ? .green : .white)
-        case .message(_, let symbolName, let tint):
-            symbol(symbolName, tint: color(for: tint))
         }
     }
 
@@ -258,10 +256,6 @@ struct ActivityBar: View {
                     .foregroundStyle(.white.opacity(0.55))
                     .lineLimit(1)
             }
-        case .message(let content, _, _):
-            Text(content)
-                .font(.system(size: 11, weight: .medium))
-                .lineLimit(1)
         case .battery(let percent, let plugged, let charging):
             Text(charging ? "Cargando" : (plugged ? "Conectado" : "Con batería"))
                 .font(.system(size: 11, weight: .medium))
@@ -280,8 +274,6 @@ struct ActivityBar: View {
         case .battery(let percent, _, _):
             Text("\(percent) %")
                 .font(.system(size: 11, weight: .semibold, design: .rounded).monospacedDigit())
-        case .message:
-            EmptyView()
         }
     }
 
@@ -292,14 +284,6 @@ struct ActivityBar: View {
             .frame(width: 16)
     }
 
-    private func color(for tint: LiveActivity.LiveTint) -> Color {
-        switch tint {
-        case .accent: return .accentColor
-        case .green: return .green
-        case .orange: return .orange
-        case .red: return .red
-        }
-    }
 }
 
 // MARK: - Estado abierto

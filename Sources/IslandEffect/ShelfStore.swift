@@ -1,6 +1,5 @@
 import AppKit
 import Combine
-import UniformTypeIdentifiers
 
 struct ShelfItem: Identifiable, Equatable {
     let id: UUID
@@ -71,11 +70,6 @@ final class ShelfStore: ObservableObject {
         let pb = NSPasteboard.general
         pb.clearContents()
         pb.writeObjects(items.map { $0.url as NSURL })
-    }
-
-    func share(_ item: ShelfItem, from view: NSView) {
-        let picker = NSSharingServicePicker(items: [item.url])
-        picker.show(relativeTo: view.bounds, of: view, preferredEdge: .minY)
     }
 
     // MARK: - Persistencia

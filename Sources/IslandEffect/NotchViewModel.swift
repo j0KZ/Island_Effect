@@ -22,9 +22,7 @@ enum NotchTab: String, CaseIterable, Identifiable {
 enum LiveActivity: Equatable {
     case music(title: String, subtitle: String, playing: Bool)
     case battery(percent: Int, plugged: Bool, charging: Bool)
-    case message(text: String, symbol: String, tint: LiveTint)
 
-    enum LiveTint: Equatable { case accent, green, orange, red }
 }
 
 /// Estado de la isla: cerrada, en hover, o abierta.
@@ -35,7 +33,6 @@ final class NotchViewModel: ObservableObject {
     @Published var isPinned = false
     @Published var tab: NotchTab = IslandDebug.initialTab { didSet { IslandDebug.log("tab -> \(tab.rawValue)") } }
     @Published var activity: LiveActivity?
-    @Published var isDropTarget = false
     @Published var metrics: ScreenMetrics
 
     private var activityDismiss: Timer?
@@ -90,9 +87,6 @@ final class NotchViewModel: ObservableObject {
             let text = textWidth(label, size: 11, weight: .medium)
                 + textWidth(" \(percent) %", size: 11, weight: .semibold)
             return CGSize(width: clampWidth(86 + text), height: 30)
-        case .message(let content, _, _):
-            return CGSize(width: clampWidth(72 + textWidth(content, size: 11, weight: .medium)),
-                          height: 30)
         }
     }
 

@@ -1,6 +1,5 @@
 import SwiftUI
 import AppKit
-import UniformTypeIdentifiers
 
 struct ShelfView: View {
     @ObservedObject var vm: NotchViewModel

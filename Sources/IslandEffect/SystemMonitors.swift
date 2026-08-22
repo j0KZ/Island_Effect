@@ -1,6 +1,5 @@
 import AppKit
 import Combine
-import notify
 import CoreAudio
 import AudioToolbox
 import IOKit.ps
@@ -101,8 +100,6 @@ struct BatteryState: Equatable {
     var percent: Int = 100
     var charging: Bool = false
     var plugged: Bool = false
-    var timeToFull: Int = -1
-    var timeToEmpty: Int = -1
     var present: Bool = false
 }
 
@@ -144,44 +141,8 @@ final class BatteryMonitor: ObservableObject {
             s.percent = max > 0 ? Int((Double(current) / Double(max) * 100).rounded()) : current
             s.charging = desc[kIOPSIsChargingKey] as? Bool ?? false
             s.plugged = (desc[kIOPSPowerSourceStateKey] as? String) == kIOPSACPowerValue
-            s.timeToFull = desc[kIOPSTimeToFullChargeKey] as? Int ?? -1
-            s.timeToEmpty = desc[kIOPSTimeToEmptyKey] as? Int ?? -1
             break
         }
         return s
-    }
-}
-
-// MARK: - Memoria
-
-enum SystemStats {
-    /// Fracción de RAM en uso (0...1) y GB usados.
-    static func memoryUsage() -> (fraction: Double, usedGB: Double, totalGB: Double) {
-        var stats = vm_statistics64()
-        var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64_data_t>.size / MemoryLayout<integer_t>.size)
-        let result = withUnsafeMutablePointer(to: &stats) { ptr in
-            ptr.withMemoryRebound(to: integer_t.self, capacity: Int(count)) { intPtr in
-                host_statistics64(mach_host_self(), HOST_VM_INFO64, intPtr, &count)
-            }
-        }
-        let total = Double(ProcessInfo.processInfo.physicalMemory)
-        guard result == KERN_SUCCESS, total > 0 else { return (0, 0, total / 1_073_741_824) }
-        let pageSize = Double(vm_kernel_page_size)
-        let active = Double(stats.active_count) * pageSize
-        let wired = Double(stats.wire_count) * pageSize
-        let compressed = Double(stats.compressor_page_count) * pageSize
-        let used = active + wired + compressed
-        return (min(1, used / total), used / 1_073_741_824, total / 1_073_741_824)
-    }
-
-    /// Espacio libre del disco de arranque en GB.
-    static func diskFreeGB() -> (free: Double, total: Double) {
-        let url = URL(fileURLWithPath: "/")
-        guard let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey, .volumeTotalCapacityKey]) else {
-            return (0, 0)
-        }
-        let free = Double(values.volumeAvailableCapacityForImportantUsage ?? 0) / 1_073_741_824
-        let total = Double(values.volumeTotalCapacity ?? 0) / 1_073_741_824
-        return (free, total)
     }
 }

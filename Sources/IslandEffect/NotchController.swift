@@ -8,7 +8,6 @@ final class NotchController {
     static let shared = NotchController()
 
     private(set) var panel: NotchPanel?
-    private var hostingView: PassthroughHostingView<RootView>?
     let viewModel: NotchViewModel
     private let prefs = Prefs.shared
 
@@ -51,7 +50,6 @@ final class NotchController {
         panel.contentView = hosting
         panel.orderFrontRegardless()
         self.panel = panel
-        self.hostingView = hosting
     }
 
     private var currentScreen: NSScreen {

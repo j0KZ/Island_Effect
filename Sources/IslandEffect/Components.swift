@@ -94,23 +94,6 @@ struct EqualizerBars: View {
     }
 }
 
-/// Barra pequeña de progreso (volumen/brillo en modo compacto).
-struct MiniBar: View {
-    var value: Double
-    var tint: Color = .white
-
-    var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.white.opacity(0.2))
-                Capsule().fill(tint)
-                    .frame(width: max(3, geo.size.width * min(1, max(0, value))))
-            }
-        }
-        .frame(width: 58, height: 5)
-    }
-}
-
 /// Slider plano estilo isla (para volumen, brillo y scrubbing).
 struct IslandSlider: View {
     @Binding var value: Double
@@ -149,59 +132,6 @@ struct IslandSlider: View {
             .animation(.easeOut(duration: 0.15), value: dragging)
             .animation(.easeOut(duration: 0.15), value: hovering)
         }
-    }
-}
-
-/// Anillo de progreso para widgets.
-struct RingGauge<Label: View>: View {
-    var progress: Double
-    var tint: Color
-    var lineWidth: CGFloat = 6
-    @ViewBuilder var label: () -> Label
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(Color.white.opacity(0.12), lineWidth: lineWidth)
-            Circle()
-                .trim(from: 0, to: max(0.001, min(1, progress)))
-                .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-                .animation(.easeOut(duration: 0.4), value: progress)
-            label()
-        }
-    }
-}
-
-/// Tarjeta base de los widgets.
-struct WidgetCard<Content: View>: View {
-    var title: String
-    var symbol: String
-    @ViewBuilder var content: () -> Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 4) {
-                Image(systemName: symbol)
-                    .font(.system(size: 9, weight: .semibold))
-                Text(title.uppercased())
-                    .font(.system(size: 9, weight: .semibold))
-                    .tracking(0.6)
-            }
-            .foregroundStyle(.white.opacity(0.45))
-            content()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        }
-        .padding(10)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.white.opacity(0.06))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color.white.opacity(0.06), lineWidth: 0.8)
-        )
     }
 }
 

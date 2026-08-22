@@ -18,15 +18,15 @@ pasar el mouse.
 - Al abrirse, el panel **cuelga por debajo de la barra de menús**: en esa fila
   solo queda el notch, así que los íconos de tus otras apps siguen visibles.
 - La ventana solo acepta clics mientras el puntero está sobre la isla
-  (`ignoresMouseEvents` conmutado a 60 Hz): todo lo demás llega a la barra de
-  menús como si la isla no existiera.
+  (`ignoresMouseEvents`): todo lo demás llega a la barra de menús como si la
+  isla no existiera.
 - **Liquid Glass del sistema** (`glassEffect`, macOS 26) teñido con el color
   dominante de la carátula que esté sonando; en macOS 14–15 cae a
-  `NSVisualEffectView`. Los desenfoques del contorno se rasterizan en una
-  textura, que es lo que evita que animar la isla dispare la CPU.
-- Contorno tipo *Liquid Glass*: borde especular, más intenso en el canto
-  inferior, con halo. Sirve para ubicar la isla cuando la barra es toda negra.
-  Regulable de 0 a 100 % en Preferencias.
+  `NSVisualEffectView`.
+- Contorno especular alrededor de todo el borde, con halo, más intenso en el
+  canto inferior. Sirve para ubicar la isla cuando la barra es toda negra, y se
+  regula de 0 a 100 % en Preferencias. Se dibuja un poco por fuera del recorte
+  del notch: dentro no hay píxeles y no se vería.
 - Esquinas superiores invertidas para fundirse con el borde de la pantalla.
 - En pantallas **sin notch** se convierte en un asa centrada bajo la barra de
   menús, con la misma funcionalidad.
@@ -57,9 +57,9 @@ que no uses ahorra una consulta y un permiso de automatización)
 
 **Preferencias** (engranaje de la isla o el menú de la barra)
 - Tamaño abierto (el contenido se compacta solo en los altos chicos), radio de
-  esquinas, ancho extra en reposo, contorno, halo y fondo translúcido.
-- Retardos de apertura/cierre, háptica, pantalla a seguir, abrir al iniciar
-  sesión y ocultar el ícono de la barra de menús (con botón de salir acá mismo).
+  esquinas, ancho extra en reposo y contorno.
+- Retardo de apertura, háptica, pantalla a seguir, abrir al iniciar sesión y
+  ocultar el ícono de la barra de menús (con botón de salir acá mismo).
 - Qué módulos quieres (reproductor, fuentes de música, repisa) y qué avisos,
   con su duración. Si solo dejas un módulo activo, la barra de pestañas
   desaparece sola.
@@ -92,14 +92,17 @@ No es obligatorio: sin él la app funciona, solo pierdes el reproductor.
 | Archivo | Rol |
 |---|---|
 | `NotchPanel.swift` | `NSPanel` sin bordes sobre la barra de menús, con click‑through fuera de la isla |
-| `NotchController.swift` | Posición, hover, gestos, live activities, multi‑monitor |
-| `NotchViewModel.swift` | Estado (cerrada / abierta / activity), tamaños, temporizador |
+| `NotchController.swift` | Posición, hover, gestos, avisos, multi‑monitor, paso de clics |
+| `NotchViewModel.swift` | Estado (reposo / aviso / abierta) y tamaños de cada uno |
 | `NotchShape.swift` | Forma del notch en reposo y de la isla desplegada (notch + panel colgante) |
-| `RootView.swift` | Isla cerrada (activities) y abierta (pestañas) |
-| `MediaManager.swift` | Now playing y control vía AppleScript, con sondeo adaptativo |
+| `RootView.swift` | Fondo, contorno, píldora de aviso y panel abierto |
+| `MediaManager.swift` | Now playing y control: notificaciones distribuidas + AppleScript |
+| `MusicView.swift` | Reproductor, con tres densidades según el alto del panel |
 | `ShelfStore.swift` / `ShelfView.swift` | Repisa de archivos |
-| `SystemMonitors.swift` | Volumen (CoreAudio), brillo (DisplayServices), batería (IOKit), RAM |
+| `SystemMonitors.swift` | Volumen (CoreAudio, bajo demanda) y batería (IOKit) |
+| `Components.swift` | Piezas compartidas: carátula, slider, ecualizador, botones |
 | `SettingsView.swift` | Preferencias + ítem de inicio |
+| `Debug.swift` | Log opcional y ganchos de prueba (`ISLAND_*`) |
 
 ### Rendimiento
 
@@ -126,9 +129,6 @@ Lo que se cambió:
   abierta (para que avance la barra de progreso) y como red de seguridad
   espaciada. Si el reproductor resulta no publicar notificaciones, la app lo
   detecta sola y vuelve a sondear más seguido.
-- **Volumen por evento.** El listener estaba puesto en la propiedad de volumen
-  "virtual", que no notifica; ahora escucha la escala por canal y en cuanto
-  llega el primer aviso apaga el sondeo.
 - **Sin vigilancia de volumen ni de brillo.** Eran dos sondeos permanentes para
   duplicar avisos que el sistema ya da. Además el brillo automático del Mac
   hace microajustes constantes: la píldora salía sola varias veces por minuto.
