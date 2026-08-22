@@ -1,223 +1,222 @@
 # Island Effect
 
-Convierte el notch del MacBook en una isla interactiva, al estilo de
-[NotchNook](https://lo.cafe/notchnook), pero nativa, propia y sin licencia.
+*[English](README.md) · [Español](README.es.md)*
 
-App de macOS en Swift + SwiftUI, sin dependencias externas. Vive en la barra de
-menús (`LSUIElement`), dibuja un panel flotante encima del notch y se expande al
-pasar el mouse.
+Turns the MacBook notch into an interactive island, in the spirit of
+[NotchNook](https://lo.cafe/notchnook), but native, self-built and unlicensed.
 
-![tabs](docs/preview.png)
+A macOS app in Swift + SwiftUI with no external dependencies. It lives in the
+menu bar (`LSUIElement`), draws a floating panel over the notch and expands on
+hover.
 
-## Qué hace
+![Island Effect open, showing the player](docs/preview.png)
 
-**Isla que se expande**
-- En reposo es indistinguible del notch. Al pasar el mouse se abre con un
-  resorte tipo Dynamic Island; al salir se cierra sola.
-- Clic en el notch: la deja abierta mientras trabajas dentro; otro clic la cierra.
-- Al abrirse, el panel **cuelga por debajo de la barra de menús**: en esa fila
-  solo queda el notch, así que los íconos de tus otras apps siguen visibles.
-- La ventana solo acepta clics mientras el puntero está sobre la isla
-  (`ignoresMouseEvents`): todo lo demás llega a la barra de menús como si la
-  isla no existiera.
-- **Liquid Glass del sistema** (`glassEffect`, macOS 26) teñido con el color
-  dominante de la carátula; en macOS 14–15 cae a `NSVisualEffectView`.
-- Además, el panel toma un **lavado de color de la propia portada**: la carátula
-  reducida a 16×16 y ampliada de vuelta, que la interpolación convierte en un
-  degradado con los colores del disco. Es el truco del fondo de Música de Apple
-  y cuesta lo mismo que dibujar una imagen de 256 píxeles.
-- Contorno especular alrededor de todo el borde, con halo, más intenso en el
-  canto inferior. Sirve para ubicar la isla cuando la barra es toda negra, y se
-  regula de 0 a 100 % en Preferencias. Se dibuja un poco por fuera del recorte
-  del notch: dentro no hay píxeles y no se vería.
-- Esquinas superiores invertidas para fundirse con el borde de la pantalla.
-- En pantallas **sin notch** se convierte en un asa centrada bajo la barra de
-  menús, con la misma funcionalidad.
-- Multi‑monitor: sigue la pantalla donde está el mouse (configurable).
+## What it does
 
-**Avisos** (píldora pequeña colgando bajo el notch, sin tapar la barra)
-- Cambio de canción: carátula, ecualizador, tiempo transcurrido y una línea de
-  progreso en el canto inferior.
-- Conexión/desconexión del cargador.
+**An island that expands**
+- At rest it is indistinguishable from the notch. Hovering opens it with a
+  Dynamic-Island-style spring; leaving closes it.
+- Click the notch: it stays open while you work inside; click again to close.
+- When open, the panel **hangs below the menu bar**: only the notch occupies
+  that row, so your other apps' icons stay visible.
+- The window only accepts clicks while the pointer is over the island
+  (`ignoresMouseEvents`): everything else reaches the menu bar as if the island
+  weren't there.
+- **System Liquid Glass** (`glassEffect`, macOS 26) tinted with the dominant
+  colour of the artwork; on macOS 14–15 it falls back to `NSVisualEffectView`.
+- On top of that, the panel takes a **colour wash from the cover art itself**:
+  the artwork shrunk to 6×6 and blown back up, which interpolation turns into a
+  gradient of the record's colours. It is the trick behind Apple Music's
+  background and costs the same as drawing a 36-pixel image.
+- A specular outline all the way around, with a halo, brighter along the bottom
+  edge. It is what lets you find the island when the menu bar is all black, and
+  it is adjustable from 0 to 100 % in Preferences. It is drawn slightly outside
+  the notch cutout: there are no pixels inside it, so nothing would show.
+- Inverted top corners, to blend into the screen edge.
+- On **notchless displays** it becomes a handle centred under the menu bar,
+  with the same behaviour.
+- Multi-monitor: follows the screen the pointer is on (configurable).
 
-Volumen y brillo no tienen aviso a propósito: macOS ya muestra el suyo y
-duplicarlo costaba un sondeo permanente para nada.
+**Notices** (a small pill hanging under the notch, never covering the menu bar)
+- Track change: artwork, equalizer, elapsed time and a progress line along the
+  bottom edge. It waits for the artwork before appearing, so it never flashes
+  colourless.
+- Charger plugged in or unplugged.
 
-**Música** — Apple Music y Spotify, cada uno activable por separado (apagar el
-que no uses ahorra una consulta y un permiso de automatización)
-- Carátula, título, artista, barra de progreso con scrubbing, anterior/play/
-  siguiente y volumen del sistema.
-- Clic en la carátula abre la app de origen.
+Volume and brightness deliberately have no notice: macOS already shows its own,
+and duplicating them cost a permanent poll for nothing.
 
-**Repisa de archivos**
-- Arrastra archivos al notch y quedan ahí. Arrástralos de vuelta a donde
-  quieras, o usa abrir / mostrar en Finder / copiar ruta.
-- Persiste entre sesiones.
+**Music** — Apple Music and Spotify, each toggled separately (turning off the
+one you don't use saves a query and an automation prompt)
+- Artwork, title, artist, scrubbable progress bar, previous/play/next and
+  system volume.
+- Clicking the artwork opens the source app.
 
-**Cómo se usa**
-- Pasa el mouse por el notch para abrirla.
-- Clic: se queda abierta; otro clic la cierra.
-- Arrastra archivos al notch y van a la repisa.
+**File shelf**
+- Drop files onto the notch and they stay there. Drag them back out wherever
+  you want, or use open / show in Finder / copy path.
+- Persists across sessions.
 
-No hay gestos de scroll para volumen ni para cambiar de canción: eso ya está en
-las teclas del Mac, y sostenerlo obligaba a un monitor global de scroll que
-despertaba el proceso con cada scroll del sistema.
+**How you use it**
+- Hover the notch to open it.
+- Click: it stays open; click again to close.
+- Drag files onto the notch and they go to the shelf.
 
-**Preferencias** (engranaje de la isla o el menú de la barra)
-- Tamaño abierto (el contenido se compacta solo en los altos chicos), radio de
-  esquinas, ancho extra en reposo y contorno.
-- Retardo de apertura, háptica, pantalla a seguir, abrir al iniciar sesión y
-  ocultar el ícono de la barra de menús (con botón de salir acá mismo).
-- Qué módulos quieres (reproductor, fuentes de música, repisa) y qué avisos,
-  con su duración. Si solo dejas un módulo activo, la barra de pestañas
-  desaparece sola.
+There are no scroll gestures for volume or track skipping: the Mac keyboard
+already does that, and keeping them meant a global scroll monitor that woke the
+process on every scroll in the system.
 
-Son cuatro pestañas: General, Apariencia, Módulos y Acerca de.
+**Preferences** (the island's gear, or the menu bar item)
+- Open size (content compacts itself at short heights), corner radius, extra
+  width at rest and outline.
+- Open delay, haptics, which screen to follow, open at login and hiding the
+  menu bar icon (with a quit button right there).
+- Which modules you want (player, music sources, shelf) and which notices, with
+  their duration. Leave a single module on and the tab bar disappears by itself.
 
-## Instalar
+Four tabs: General, Appearance, Modules and About.
+
+## Install
 
 ```bash
 ./build.sh --install
 ```
 
-Compila, arma `Island Effect.app`, la firma ad‑hoc, la copia a `/Applications` y
-la lanza. Sin el flag solo compila en `build/`; con `--run` la ejecuta desde ahí.
+Builds it, assembles `Island Effect.app`, signs it ad-hoc, copies it to
+`/Applications` and launches it. Without the flag it only builds into `build/`;
+with `--run` it runs it from there.
 
-Requiere macOS 14 o superior y las Command Line Tools de Xcode (`swift`).
+Requires macOS 14 or later and Xcode's Command Line Tools (`swift`). Building on
+your own Mac is also what keeps Gatekeeper out of the way: the app is ad-hoc
+signed and not notarised, so a prebuilt copy downloaded from elsewhere would be
+quarantined.
 
-## Permisos
+## Permissions
 
-Uno solo:
+Just one:
 
-| Permiso | Para qué | Cuándo |
+| Permission | What for | When |
 |---|---|---|
-| Automatización (Música / Spotify) | Leer y controlar la reproducción | La primera vez que hay un reproductor abierto |
+| Automation (Music / Spotify) | Read and control playback | The first time a player is running |
 
-No es obligatorio: sin él la app funciona, solo pierdes el reproductor, y la
-pestaña de Música te ofrece el atajo a Ajustes para concederlo. Si solo usas
-uno de los dos reproductores, apaga el otro en Módulos y macOS no te preguntará
-por él.
+It is not mandatory: without it the app still works, you just lose the player,
+and the Music tab offers a shortcut to Settings to grant it. If you only use one
+of the two players, turn the other off in Modules and macOS will never ask about
+it.
 
-**No pide** accesibilidad, grabación de pantalla, cámara, micrófono, ubicación,
-contactos ni calendario, y no usa ninguna API que las requiera. Tampoco va en
-sandbox, así que la repisa lee los archivos que le sueltas sin más trámite
-(macOS sí puede preguntar por Escritorio, Documentos o Descargas la primera vez
-que se toca un archivo de esas carpetas, como a cualquier app).
+It does **not** request accessibility, screen recording, camera, microphone,
+location, contacts or calendar, and uses no API that would require them. It is
+not sandboxed either, so the shelf reads the files you drop on it without
+further ceremony (macOS may still ask about Desktop, Documents or Downloads the
+first time a file from those folders is touched, as it would for any app).
 
-> Al estar firmada ad‑hoc, macOS le da una identidad nueva en cada recompilación
-> y puede volver a pedir los permisos. Es normal en apps locales sin certificado
-> de desarrollador.
+## Languages
 
-## Idiomas
+English and Spanish. The app follows the system language and falls back to
+English for anything else. Strings live in `Resources/en.lproj` and
+`Resources/es.lproj`; the keys are the English text itself, so adding a language
+is copying a `.lproj` folder and translating it.
 
-Inglés y español. La app sigue el idioma del sistema y cae al inglés si no es
-ninguno de los dos. Las cadenas viven en `Resources/en.lproj` y
-`Resources/es.lproj`; las claves son el propio texto en inglés, así que añadir
-un idioma es copiar una carpeta `.lproj` y traducir.
+## How it is built
 
-## Cómo está hecho
-
-| Archivo | Rol |
+| File | Role |
 |---|---|
-| `NotchPanel.swift` | `NSPanel` sin bordes sobre la barra de menús, con click‑through fuera de la isla |
-| `NotchController.swift` | Posición, hover, avisos, multi‑monitor, paso de clics |
-| `NotchViewModel.swift` | Estado (reposo / aviso / abierta) y tamaños de cada uno |
-| `NotchShape.swift` | Forma del notch en reposo y de la isla desplegada (notch + panel colgante) |
-| `RootView.swift` | Fondo, contorno, píldora de aviso y panel abierto |
-| `MediaManager.swift` | Now playing y control: notificaciones distribuidas + AppleScript |
-| `MusicView.swift` | Reproductor, con tres densidades según el alto del panel |
-| `ShelfStore.swift` / `ShelfView.swift` | Repisa de archivos |
-| `SystemMonitors.swift` | Volumen (CoreAudio, bajo demanda) y batería (IOKit) |
-| `Components.swift` | Piezas compartidas: carátula, slider, ecualizador, botones |
-| `SettingsView.swift` | Preferencias + ítem de inicio |
-| `Debug.swift` | Log opcional y ganchos de prueba (`ISLAND_*`) |
+| `NotchPanel.swift` | Borderless `NSPanel` above the menu bar, click-through outside the island |
+| `NotchController.swift` | Position, hover, notices, multi-monitor, click pass-through |
+| `NotchViewModel.swift` | State (at rest / notice / open) and the sizes of each |
+| `NotchShape.swift` | The notch at rest and the expanded island (notch + hanging panel) |
+| `RootView.swift` | Background, outline, notice pill and open panel |
+| `MediaManager.swift` | Now playing and control: distributed notifications + AppleScript |
+| `MusicView.swift` | The player, in three densities depending on panel height |
+| `ShelfStore.swift` / `ShelfView.swift` | File shelf |
+| `SystemMonitors.swift` | Volume (CoreAudio, on demand) and battery (IOKit) |
+| `Components.swift` | Shared pieces: artwork, slider, equalizer, buttons |
+| `SettingsView.swift` | Preferences + login item |
+| `Debug.swift` | Optional log and test hooks (`ISLAND_*`) |
 
-### Rendimiento
+### Performance
 
-Medido en un MacBook Pro M5 Pro, promediando tiempo de CPU real (delta de
-`cputime` sobre tiempo de reloj; `ps %cpu` no sirve, promedia desde el arranque
-del proceso e incluye el pico de lanzamiento).
+Measured on a MacBook Pro M5 Pro, averaging real CPU time (delta of `cputime`
+over wall clock; `ps %cpu` is useless here, it averages from process start and
+includes the launch spike).
 
-| Escenario | CPU | Memoria |
+| Scenario | CPU | Memory |
 |---|---|---|
-| **Reposo**, sin ningún aviso | **0,40 %** | 72 MB |
-| Reposo con un cambio de canción en la ventana | 0,93 % | 72 MB |
-| Píldora de canción animada | 1,35 – 3,15 % | 76 MB |
-| Isla abierta, pantalla quieta detrás | 1,63 % | 73 MB |
-| Isla abierta, contenido cambiando detrás | 5,04 % | 71 MB |
-| *(referencia: antes de optimizar, en reposo)* | *5,33 %* | *125 MB* |
+| **At rest**, no notices | **0.40 %** | 72 MB |
+| At rest with one track change in the window | 0.93 % | 72 MB |
+| Animated track pill | 1.35 – 3.15 % | 76 MB |
+| Island open, quiet screen behind | 1.63 % | 73 MB |
+| Island open, changing content behind | 5.04 % | 71 MB |
+| *(reference: before optimising, at rest)* | *5.33 %* | *125 MB* |
 
-Arranque en frío: **~130 ms** desde el lanzamiento hasta la isla montada y
-escuchando (tres medidas: 128, 129, 130 ms). Binario 1,3 MB, bundle 1,6 MB,
-10 hilos.
+Cold start: **~130 ms** from launch to the island mounted and listening (three
+runs: 128, 129, 130 ms). Binary 1.3 MB, bundle 1.6 MB, 10 threads.
 
-Los dos escenarios de isla abierta son el mismo código: el material translúcido
-vuelve a muestrear lo que tiene detrás cada vez que eso cambia, así que sobre un
-escritorio quieto cuesta un tercio que sobre una terminal escupiendo texto. Es
-inherente a cualquier cosa translúcida, incluido el propio macOS.
+Both island-open rows are the same code: the translucent material re-samples
+whatever is behind it every time that changes, so over a quiet desktop it costs
+a third of what it costs over a terminal spewing text. That is inherent to
+anything translucent, macOS included.
 
-Medir el reposo con el Mac en uso da números engañosos: la isla se abre de
-verdad cada vez que el puntero roza el notch. Las cifras de arriba se tomaron
-verificando en el log que hubo cero aperturas durante la ventana.
+Measuring "at rest" while actually using the Mac gives misleading numbers: the
+island really does open every time the pointer brushes the notch. The figures
+above were taken after checking in the log that there were zero openings during
+the window.
 
-Lo que se cambió:
+What changed:
 
-- **Nada de `osascript` en reposo.** Music y Spotify publican una notificación
-  distribuida en cada cambio de pista con los metadatos dentro; antes se
-  lanzaba un proceso `osascript` cada segundo. Solo se sondea con la isla
-  abierta (para que avance la barra de progreso) y como red de seguridad
-  espaciada. Si el reproductor resulta no publicar notificaciones, la app lo
-  detecta sola y vuelve a sondear más seguido.
-- **Sin vigilancia de volumen ni de brillo.** Eran dos sondeos permanentes para
-  duplicar avisos que el sistema ya da. Además el brillo automático del Mac
-  hace microajustes constantes: la píldora salía sola varias veces por minuto.
-- **Sin monitor global de scroll.** Los gestos de scroll sobre el notch exigían
-  escuchar todos los eventos de scroll del sistema; se quitaron por inútiles
-  (el teclado ya hace eso) y con ellos ese despertar constante.
-- **Batería por notificación de IOKit** en vez de sondeo cada 5 s: el aviso de
-  carga ya no llega cinco segundos tarde y desaparece otro temporizador.
-- **Sondeo del puntero adaptativo**: 8 Hz lejos del borde superior, 30 Hz cerca
-  del notch o con la isla abierta, en vez de 60 Hz constantes, con salida
-  temprana en el camino caliente. El trabajo real va por monitores de eventos;
-  el temporizador es solo la red para apps a pantalla completa.
-- **El contorno se rasteriza** (`drawingGroup`): sus desenfoques se recalculaban
-  en cada fotograma y con la píldora animada la CPU se iba por encima del 15 %.
-  El vidrio queda fuera de esa textura porque no sobrevive a un `drawingGroup`.
-- **Ecualizador por Core Animation** en vez de `TimelineView`, para no
-  reevaluar la vista veinte veces por segundo.
+- **No `osascript` at rest.** Music and Spotify publish a distributed
+  notification on every track change with the metadata inside; before, a whole
+  `osascript` process was spawned every second. It only polls while the island
+  is open (to advance the progress bar) and as a widely spaced safety net. If a
+  player turns out not to publish notifications, the app detects it and goes
+  back to polling more often.
+- **No volume or brightness watching.** Two permanent polls to duplicate
+  notices the system already gives. Worse for brightness: the Mac's automatic
+  ambient adjustment makes constant micro-changes, so the pill was popping up on
+  its own several times a minute.
+- **No global scroll monitor.** Scroll gestures over the notch required
+  listening to every scroll event in the system; they were dropped as useless
+  (the keyboard already does that) and that constant wake-up went with them.
+- **Battery through an IOKit notification** instead of a 5 s poll: the charging
+  notice no longer arrives five seconds late, and another timer disappears.
+- **Adaptive pointer polling**: 8 Hz away from the top edge, 30 Hz near the
+  notch or with the island open, instead of a constant 60 Hz, with an early exit
+  on the hot path. The real work is event-driven; the timer is only the safety
+  net for full-screen apps.
+- **The outline is rasterised** (`drawingGroup`): its blurs were recomputed
+  every frame and with the pill animating the CPU went over 15 %. The glass
+  stays outside that texture because it does not survive a `drawingGroup`.
+- **Core Animation equalizer** instead of `TimelineView`, so the view is not
+  re-evaluated twenty times a second.
 
-### Pendiente
+### Known limitations
 
-- **El lavado de color sale gris el primer medio segundo tras el cambio de
-  canción.** La píldora aparece con el aviso de pista nueva y la carátula llega
-  después, así que ese instante inicial se ve neutro. Caminos: retrasar la
-  píldora hasta que la carátula resuelva (con tope de ~700 ms), o mantener el
-  lavado anterior mientras carga. Aparte de esto, una portada en blanco y negro
-  se ve gris porque así es la portada: eso es correcto.
+- Now playing only covers **Music and Spotify**. macOS 15.4 closed the private
+  `MediaRemote` framework to apps without Apple entitlements, so there is no
+  public way to read what a browser is playing.
+- The native macOS volume/brightness HUD still appears; the island complements
+  it, it does not replace it.
+- Only tested on macOS 26 with Apple Silicon. The declared minimum is macOS 14
+  and the compiler guarantees nothing newer is used without an availability
+  guard, but nobody has run it on Sonoma, Sequoia or an Intel Mac.
+- Black-and-white cover art tints the panel grey, because that is what the cover
+  is. Correct, if surprising the first time.
 
-### Limitaciones conocidas
-
-- El *now playing* solo cubre **Música y Spotify**. macOS 15.4 cerró el
-  framework privado `MediaRemote` para apps sin entitlements de Apple, así que
-  no hay forma pública de leer lo que suena en un navegador.
-- El HUD nativo de volumen/brillo de macOS sigue apareciendo; la isla lo
-  complementa, no lo reemplaza.
-
-### Depuración
+### Debugging
 
 ```bash
 ISLAND_DEBUG=1 ISLAND_LOG=/tmp/island.log open -n build/Island\ Effect.app
 ```
 
-`ISLAND_TAB=music|shelf` fuerza la pestaña inicial, `ISLAND_SETTINGS=1` abre
-Preferencias al arrancar e `ISLAND_DEMO=1` dispara una live activity de prueba.
+`ISLAND_TAB=music|shelf` forces the initial tab, `ISLAND_SETTINGS=1` opens
+Preferences on launch, `ISLAND_DEMO=1` fires a test notice and `ISLAND_OPEN=1`
+opens the island pinned.
 
-## Licencia y autoría
+## Licence and credit
 
-Hecho por **j0KZ** — [github.com/j0KZ](https://github.com/j0KZ).
-Publicado bajo licencia MIT (ver [LICENSE](LICENSE)): úsalo, modifícalo y
-distribúyelo, conservando el aviso de copyright.
+Made by **j0KZ** — [github.com/j0KZ](https://github.com/j0KZ).
+Released under the MIT licence (see [LICENSE](LICENSE)): use it, modify it and
+distribute it, keeping the copyright notice.
 
-El crédito aparece también dentro de la app, en Preferencias › Acerca de, y en
-`NSHumanReadableCopyright` del bundle (lo que Finder muestra en Obtener
-información).
+The credit also appears inside the app, in Preferences › About, and in the
+bundle's `NSHumanReadableCopyright` (what Finder shows in Get Info).

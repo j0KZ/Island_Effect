@@ -160,11 +160,28 @@ final class NotchController {
         }
         MediaManager.shared.onTrackChange = { [weak self] np in
             guard let self, self.prefs.liveMusic, np.isActive else { return }
-            self.viewModel.show(.music(title: np.title,
-                                       subtitle: np.artist.isEmpty ? np.album : np.artist,
-                                       playing: np.isPlaying),
-                                duration: np.isPlaying ? 3 : 2)
+            self.announceTrack(np)
         }
+    }
+
+    /// La carátula llega después del aviso de pista nueva (hay que pedir la URL
+    /// y descargarla), así que mostrar la píldora de inmediato la dejaba medio
+    /// segundo sin color. Se espera a la portada, con tope: si tarda, sale igual.
+    private func announceTrack(_ np: NowPlaying, waited: Double = 0) {
+        let hasArtwork = MediaManager.shared.artworkBackdrop != nil
+        let timedOut = waited >= 0.8
+        guard hasArtwork || timedOut else {
+            let step = 0.1
+            DispatchQueue.main.asyncAfter(deadline: .now() + step) { [weak self] in
+                guard let self, MediaManager.shared.info.trackKey == np.trackKey else { return }
+                self.announceTrack(np, waited: waited + step)
+            }
+            return
+        }
+        viewModel.show(.music(title: np.title,
+                              subtitle: np.artist.isEmpty ? np.album : np.artist,
+                              playing: np.isPlaying),
+                       duration: np.isPlaying ? 3 : 2)
     }
 
     // MARK: - Monitores de mouse
