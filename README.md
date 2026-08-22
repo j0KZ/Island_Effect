@@ -185,6 +185,18 @@ Lo que se cambió:
 - **Ecualizador por Core Animation** en vez de `TimelineView`, para no
   reevaluar la vista veinte veces por segundo.
 
+### Pendiente
+
+- **El lavado de color sale gris justo al cambiar de canción.** La píldora
+  aparece en cuanto llega el aviso de pista nueva, pero la carátula se pide
+  aparte (una consulta para la URL y luego la descarga), así que durante los
+  primeros instantes `artworkBackdrop` todavía es `nil` y el panel se ve
+  neutro; cuando la portada llega, el aviso puede haberse ido ya. Caminos:
+  retrasar la píldora hasta que la carátula resuelva (con tope de ~700 ms),
+  mantener el lavado anterior mientras carga, o precargar la portada de la
+  pista siguiente. Aparte de esto, una portada en blanco y negro se ve gris
+  porque así es la portada: eso es correcto.
+
 ### Limitaciones conocidas
 
 - El *now playing* solo cubre **Música y Spotify**. macOS 15.4 cerró el
