@@ -16,8 +16,13 @@ pasar el mouse.
   resorte tipo Dynamic Island; al salir se cierra sola.
 - Clic en el notch = fijar abierta / cerrar. El botón de chincheta la mantiene
   abierta mientras hagas cosas dentro.
-- Contorno tipo *Liquid Glass*: borde especular fino, más intenso abajo, con
-  halo suave. Sirve para ubicar la isla cuando la barra de menús es negra.
+- Al abrirse, el panel **cuelga por debajo de la barra de menús**: en esa fila
+  solo queda el notch, así que los íconos de tus otras apps siguen visibles y
+  se pueden pulsar.
+- Fondo translúcido de verdad (`NSVisualEffectView`): desenfoca lo que hay
+  detrás en vez de ser un rectángulo negro.
+- Contorno tipo *Liquid Glass*: borde especular, más intenso en el canto
+  inferior, con halo. Sirve para ubicar la isla cuando la barra es toda negra.
   Regulable de 0 a 100 % en Preferencias.
 - Esquinas superiores invertidas para fundirse con el borde de la pantalla.
 - En pantallas **sin notch** se convierte en un asa centrada bajo la barra de
@@ -40,19 +45,18 @@ pasar el mouse.
   quieras, o usa abrir / mostrar en Finder / copiar ruta.
 - Persiste entre sesiones.
 
-**Widgets**
-- Reloj y fecha, sliders de volumen y brillo, batería + RAM + disco, y
-  temporizador con presets.
-
 **Gestos sobre el notch**
 - Scroll vertical = volumen.
 - Scroll horizontal = canción anterior / siguiente.
 - Arrastrar archivos = van a la repisa.
 
 **Preferencias** (ícono de engranaje en la isla o el menú de la barra)
-- Tamaño abierto, radio de esquinas, ancho extra en reposo, contorno y halo.
+- Tamaño abierto, radio de esquinas, ancho extra en reposo, contorno, halo y
+  fondo translúcido.
 - Retardos de apertura/cierre, háptica, pantalla a seguir, abrir al iniciar sesión.
-- Qué pestañas y qué live activities quieres, y su duración.
+- Qué pestañas y qué live activities quieres, y su duración. Las activities
+  ocupan un momento el espacio a los lados del notch: si te estorban, cada una
+  se apaga por separado.
 
 ## Instalar
 
@@ -84,12 +88,11 @@ No es obligatorio: sin él la app funciona, solo pierdes el reproductor.
 | `NotchPanel.swift` | `NSPanel` sin bordes sobre la barra de menús, con click‑through fuera de la isla |
 | `NotchController.swift` | Posición, hover, gestos, live activities, multi‑monitor |
 | `NotchViewModel.swift` | Estado (cerrada / abierta / activity), tamaños, temporizador |
-| `NotchShape.swift` | La forma con esquinas superiores invertidas |
+| `NotchShape.swift` | Forma del notch en reposo y de la isla desplegada (notch + panel colgante) |
 | `RootView.swift` | Isla cerrada (activities) y abierta (pestañas) |
 | `MediaManager.swift` | Now playing y control vía AppleScript, con sondeo adaptativo |
 | `ShelfStore.swift` / `ShelfView.swift` | Repisa de archivos |
 | `SystemMonitors.swift` | Volumen (CoreAudio), brillo (DisplayServices), batería (IOKit), RAM |
-| `WidgetsView.swift` | Widgets |
 | `SettingsView.swift` | Preferencias + ítem de inicio |
 
 ### Limitaciones conocidas
@@ -106,4 +109,5 @@ No es obligatorio: sin él la app funciona, solo pierdes el reproductor.
 ISLAND_DEBUG=1 ISLAND_LOG=/tmp/island.log open -n build/Island\ Effect.app
 ```
 
-`ISLAND_TAB=music|shelf|widgets` fuerza la pestaña inicial.
+`ISLAND_TAB=music|shelf` fuerza la pestaña inicial e `ISLAND_SETTINGS=1` abre
+Preferencias al arrancar.

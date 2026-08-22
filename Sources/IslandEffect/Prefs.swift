@@ -14,6 +14,7 @@ final class Prefs: ObservableObject {
     @Published var tintedBackground: Bool { didSet { d.set(tintedBackground, forKey: K.tintedBackground) } }
     @Published var rimOpacity: Double { didSet { d.set(rimOpacity, forKey: K.rimOpacity) } }
     @Published var rimGlow: Bool { didSet { d.set(rimGlow, forKey: K.rimGlow) } }
+    @Published var glassBackground: Bool { didSet { d.set(glassBackground, forKey: K.glassBackground) } }
 
     // Comportamiento
     @Published var openOnHover: Bool { didSet { d.set(openOnHover, forKey: K.openOnHover) } }
@@ -36,7 +37,6 @@ final class Prefs: ObservableObject {
     // Módulos
     @Published var enableMusic: Bool { didSet { d.set(enableMusic, forKey: K.enableMusic) } }
     @Published var enableShelf: Bool { didSet { d.set(enableShelf, forKey: K.enableShelf) } }
-    @Published var enableWidgets: Bool { didSet { d.set(enableWidgets, forKey: K.enableWidgets) } }
     @Published var shelfPersists: Bool { didSet { d.set(shelfPersists, forKey: K.shelfPersists) } }
     @Published var use24hClock: Bool { didSet { d.set(use24hClock, forKey: K.use24hClock) } }
 
@@ -50,6 +50,7 @@ final class Prefs: ObservableObject {
         static let tintedBackground = "tintedBackground"
         static let rimOpacity = "rimOpacity"
         static let rimGlow = "rimGlow"
+        static let glassBackground = "glassBackground"
         static let openOnHover = "openOnHover"
         static let hoverOpenDelay = "hoverOpenDelay"
         static let hoverCloseDelay = "hoverCloseDelay"
@@ -64,7 +65,6 @@ final class Prefs: ObservableObject {
         static let activityDuration = "activityDuration"
         static let enableMusic = "enableMusic"
         static let enableShelf = "enableShelf"
-        static let enableWidgets = "enableWidgets"
         static let shelfPersists = "shelfPersists"
         static let use24hClock = "use24hClock"
         static let launchAtLogin = "launchAtLogin"
@@ -77,8 +77,9 @@ final class Prefs: ObservableObject {
             K.cornerRadius: 22.0,
             K.extraClosedWidth: 0.0,
             K.tintedBackground: true,
-            K.rimOpacity: 0.42,
+            K.rimOpacity: 0.85,
             K.rimGlow: true,
+            K.glassBackground: true,
             K.openOnHover: true,
             K.hoverOpenDelay: 0.18,
             K.hoverCloseDelay: 0.25,
@@ -93,7 +94,6 @@ final class Prefs: ObservableObject {
             K.activityDuration: 2.2,
             K.enableMusic: true,
             K.enableShelf: true,
-            K.enableWidgets: true,
             K.shelfPersists: true,
             K.use24hClock: true,
             K.launchAtLogin: false
@@ -105,6 +105,7 @@ final class Prefs: ObservableObject {
         tintedBackground = d.bool(forKey: K.tintedBackground)
         rimOpacity = d.double(forKey: K.rimOpacity)
         rimGlow = d.bool(forKey: K.rimGlow)
+        glassBackground = d.bool(forKey: K.glassBackground)
         openOnHover = d.bool(forKey: K.openOnHover)
         hoverOpenDelay = d.double(forKey: K.hoverOpenDelay)
         hoverCloseDelay = d.double(forKey: K.hoverCloseDelay)
@@ -119,7 +120,6 @@ final class Prefs: ObservableObject {
         activityDuration = d.double(forKey: K.activityDuration)
         enableMusic = d.bool(forKey: K.enableMusic)
         enableShelf = d.bool(forKey: K.enableShelf)
-        enableWidgets = d.bool(forKey: K.enableWidgets)
         shelfPersists = d.bool(forKey: K.shelfPersists)
         use24hClock = d.bool(forKey: K.use24hClock)
         launchAtLogin = d.bool(forKey: K.launchAtLogin)
@@ -127,10 +127,10 @@ final class Prefs: ObservableObject {
 
     func resetToDefaults() {
         for key in [K.expandedWidth, K.expandedHeight, K.cornerRadius, K.extraClosedWidth,
-                    K.tintedBackground, K.rimOpacity, K.rimGlow, K.openOnHover, K.hoverOpenDelay, K.hoverCloseDelay,
+                    K.tintedBackground, K.rimOpacity, K.rimGlow, K.glassBackground, K.openOnHover, K.hoverOpenDelay, K.hoverCloseDelay,
                     K.followMouseScreen, K.haptics, K.scrollVolume, K.scrollTrack,
                     K.liveMusic, K.liveVolume, K.liveBrightness, K.liveBattery,
-                    K.activityDuration, K.enableMusic, K.enableShelf, K.enableWidgets,
+                    K.activityDuration, K.enableMusic, K.enableShelf,
                     K.shelfPersists, K.use24hClock] {
             d.removeObject(forKey: key)
         }
@@ -141,6 +141,7 @@ final class Prefs: ObservableObject {
         tintedBackground = d.bool(forKey: K.tintedBackground)
         rimOpacity = d.double(forKey: K.rimOpacity)
         rimGlow = d.bool(forKey: K.rimGlow)
+        glassBackground = d.bool(forKey: K.glassBackground)
         openOnHover = d.bool(forKey: K.openOnHover)
         hoverOpenDelay = d.double(forKey: K.hoverOpenDelay)
         hoverCloseDelay = d.double(forKey: K.hoverCloseDelay)
@@ -155,7 +156,6 @@ final class Prefs: ObservableObject {
         activityDuration = d.double(forKey: K.activityDuration)
         enableMusic = d.bool(forKey: K.enableMusic)
         enableShelf = d.bool(forKey: K.enableShelf)
-        enableWidgets = d.bool(forKey: K.enableWidgets)
         shelfPersists = d.bool(forKey: K.shelfPersists)
         use24hClock = d.bool(forKey: K.use24hClock)
     }

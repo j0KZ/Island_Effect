@@ -1,6 +1,24 @@
 import SwiftUI
 import AppKit
 
+/// Material translúcido de macOS detrás de la isla (desenfoca lo que hay debajo).
+struct GlassBackground: NSViewRepresentable {
+    var material: NSVisualEffectView.Material = .hudWindow
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = material
+        view.blendingMode = .behindWindow
+        view.state = .active
+        view.isEmphasized = true
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {
+        view.material = material
+    }
+}
+
 enum TimeFormat {
     static func clock(_ seconds: Int) -> String {
         let s = max(0, seconds)

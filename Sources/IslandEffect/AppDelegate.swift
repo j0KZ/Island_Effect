@@ -6,6 +6,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var statusItem: NSStatusItem?
     private var settingsWindow: SettingsWindowController?
+    /// Con Preferencias abierto la isla no debe desplegarse: taparía la ventana.
+    var settingsVisible: Bool { settingsWindow?.window?.isVisible ?? false }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.shared = self
@@ -18,6 +20,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         NotchController.shared.start()
         setupStatusItem()
+
+        if ProcessInfo.processInfo.environment["ISLAND_SETTINGS"] == "1" {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.showSettings() }
+        }
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -42,9 +48,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let shelf = NSMenuItem(title: "Repisa", action: #selector(openShelf), keyEquivalent: "")
         shelf.target = self
         menu.addItem(shelf)
-        let widgets = NSMenuItem(title: "Widgets", action: #selector(openWidgets), keyEquivalent: "")
-        widgets.target = self
-        menu.addItem(widgets)
         menu.addItem(.separator())
         let prefs = NSMenuItem(title: "Preferencias…", action: #selector(showSettingsAction), keyEquivalent: ",")
         prefs.target = self
@@ -69,13 +72,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in NotchController.shared.openTab(.shelf) }
     }
 
-    @objc private func openWidgets() {
-        Task { @MainActor in NotchController.shared.openTab(.widgets) }
-    }
-
     @objc private func showSettingsAction() { showSettings() }
 
     func showSettings() {
+        // La isla vive por encima de todas las ventanas: si queda abierta, tapa
+        // las preferencias y no hay forma de tocarlas.
+        Task { @MainActor in NotchController.shared.closeForModalWindow() }
         if settingsWindow == nil { settingsWindow = SettingsWindowController() }
         settingsWindow?.show()
     }

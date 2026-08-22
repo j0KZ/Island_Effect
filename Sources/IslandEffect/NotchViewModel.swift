@@ -3,20 +3,18 @@ import SwiftUI
 import Combine
 
 enum NotchTab: String, CaseIterable, Identifiable {
-    case music, shelf, widgets
+    case music, shelf
     var id: String { rawValue }
     var symbol: String {
         switch self {
         case .music: return "music.note"
         case .shelf: return "tray.full"
-        case .widgets: return "square.grid.2x2"
         }
     }
     var title: String {
         switch self {
         case .music: return "Música"
         case .shelf: return "Repisa"
-        case .widgets: return "Widgets"
         }
     }
 }
@@ -26,7 +24,6 @@ enum LiveActivity: Equatable {
     case volume(Float, muted: Bool)
     case brightness(Float)
     case battery(percent: Int, plugged: Bool, charging: Bool)
-    case timer(remaining: Int)
     case message(text: String, symbol: String, tint: LiveTint)
 
     enum LiveTint: Equatable { case accent, green, orange, red }
@@ -42,11 +39,6 @@ final class NotchViewModel: ObservableObject {
     @Published var activity: LiveActivity?
     @Published var isDropTarget = false
     @Published var metrics: ScreenMetrics
-
-    // Temporizador (widget)
-    @Published var timerRemaining: Int = 0
-    @Published var timerRunning = false
-    private var countdown: Timer?
 
     private var activityDismiss: Timer?
     let prefs = Prefs.shared
@@ -84,7 +76,6 @@ final class NotchViewModel: ObservableObject {
         case .music: return (52, 44)
         case .volume, .brightness: return (34, 78)
         case .battery: return (38, 56)
-        case .timer: return (34, 60)
         case .message: return (38, 104)
         }
     }
@@ -144,40 +135,6 @@ final class NotchViewModel: ObservableObject {
     func hideActivityImmediately() {
         activityDismiss?.invalidate()
         activity = nil
-    }
-
-    // MARK: - Temporizador
-
-    func startTimer(seconds: Int) {
-        timerRemaining = seconds
-        timerRunning = true
-        countdown?.invalidate()
-        countdown = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.tickTimer() }
-        }
-    }
-
-    func toggleTimer() {
-        guard timerRemaining > 0 else { return }
-        timerRunning.toggle()
-    }
-
-    func stopTimer() {
-        timerRunning = false
-        timerRemaining = 0
-        countdown?.invalidate()
-        countdown = nil
-    }
-
-    private func tickTimer() {
-        guard timerRunning, timerRemaining > 0 else { return }
-        timerRemaining -= 1
-        if timerRemaining == 0 {
-            timerRunning = false
-            countdown?.invalidate()
-            NSSound(named: "Glass")?.play()
-            show(.message(text: "Tiempo cumplido", symbol: "timer", tint: .orange), duration: 5)
-        }
     }
 }
 

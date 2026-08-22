@@ -23,7 +23,7 @@ struct RootView: View {
             background
             content
                 .frame(width: size.width, height: size.height, alignment: .top)
-                .clipShape(NotchShape(topRadius: topRadius, bottomRadius: bottomRadius))
+                .clipShape(shape)
         }
         .frame(width: size.width, height: size.height)
         .scaleEffect(dropTargeted && !vm.isOpen ? 1.04 : 1, anchor: .top)
@@ -31,7 +31,7 @@ struct RootView: View {
         .animation(.island, value: vm.activity)
         .animation(.islandFast, value: vm.isHovering)
         .animation(.islandFast, value: dropTargeted)
-        .contentShape(NotchShape(topRadius: topRadius, bottomRadius: bottomRadius))
+        .contentShape(shape)
         // Solo el estado cerrado responde al clic: cuando está abierta, los clics
         // pertenecen a los controles de adentro.
         .onTapGesture {
@@ -51,50 +51,64 @@ struct RootView: View {
         }
     }
 
-    private var topRadius: CGFloat { vm.isOpen ? 12 : 8 }
-    private var bottomRadius: CGFloat {
-        if vm.isOpen { return prefs.cornerRadius }
-        return vm.activity != nil ? 14 : (vm.metrics.hasNotch ? 10 : 6)
+    /// Una sola forma para los dos estados: cerrada es el notch; abierta, el
+    /// notch más el panel que cuelga bajo la barra de menús.
+    private var shape: IslandShape {
+        IslandShape(notchWidth: vm.isOpen ? vm.notchSize.width : size.width,
+                    notchHeight: vm.isOpen ? vm.notchSize.height : size.height,
+                    boardHeight: vm.isOpen ? prefs.expandedHeight : 0,
+                    topRadius: 8,
+                    notchBottomRadius: vm.activity != nil ? 14 : (vm.metrics.hasNotch ? 10 : 6),
+                    boardRadius: prefs.cornerRadius,
+                    fillet: 16)
     }
 
     private var background: some View {
-        let shape = NotchShape(topRadius: topRadius, bottomRadius: bottomRadius)
-        return shape
-            .fill(Color.black)
-            .overlay(
+        let shape = self.shape
+        return ZStack {
+            if useGlass {
+                // Vidrio real: desenfoca lo que hay detrás, como una isla de verdad.
+                GlassBackground(material: .hudWindow)
+                    .clipShape(shape)
+                shape.fill(Color.black.opacity(0.18))
+            } else {
+                shape.fill(Color.black)
+            }
+
+            if prefs.tintedBackground {
                 shape.fill(
-                    LinearGradient(colors: [Color.white.opacity(prefs.tintedBackground ? 0.07 : 0),
-                                            Color.white.opacity(0)],
+                    LinearGradient(colors: [Color.white.opacity(0.08), Color.white.opacity(0)],
                                    startPoint: .top, endPoint: .bottom)
                 )
-            )
-            // Halo exterior difuso: es lo que deja ubicar la isla sobre una barra negra.
-            .overlay(
-                shape.stroke(rimGradient, lineWidth: 2.6)
-                    .blur(radius: 2.6)
-                    .opacity(prefs.rimGlow ? rimStrength * 0.55 : 0)
-            )
-            // Borde especular nítido.
-            .overlay(shape.stroke(rimGradient, lineWidth: 0.9).opacity(rimStrength))
+            }
+
+            // Halo exterior difuso: lo que hace que la isla se ubique de un vistazo.
+            shape.stroke(rimGradient, lineWidth: 3.4)
+                .blur(radius: 3.2)
+                .opacity(prefs.rimGlow ? rimStrength * 0.6 : 0)
+
+            // Borde especular nítido, todo el contorno.
+            shape.stroke(rimGradient, lineWidth: 1.4)
+                .opacity(rimStrength)
+
+            // Grosor del vidrio: brillo interior pegado al canto inferior.
+            shape.stroke(Color.white.opacity(0.6), lineWidth: 2.2)
+                .blur(radius: 2)
+                .mask(LinearGradient(colors: [.clear, .black], startPoint: .center, endPoint: .bottom))
+                .opacity(rimStrength * 0.8)
+
             // Refracción cromática apenas insinuada en los extremos.
-            .overlay(
-                shape.stroke(rimTint, lineWidth: 0.9)
-                    .opacity(rimStrength * 0.45)
-                    .blendMode(.plusLighter)
-            )
-            // Brillo interior pegado al borde inferior, como el grosor del vidrio.
-            .overlay(
-                shape.stroke(Color.white.opacity(0.5), lineWidth: 1.6)
-                    .blur(radius: 1.8)
-                    .mask(
-                        LinearGradient(colors: [.clear, .black], startPoint: .center, endPoint: .bottom)
-                    )
-                    .opacity(rimStrength * 0.7)
-            )
-            .shadow(color: .black.opacity(vm.isOpen ? 0.6 : (vm.activity != nil ? 0.25 : 0)),
-                    radius: vm.isOpen ? 22 : 6, x: 0, y: vm.isOpen ? 10 : 3)
-            .animation(.easeOut(duration: 0.18), value: rimStrength)
+            shape.stroke(rimTint, lineWidth: 1.4)
+                .opacity(rimStrength * 0.32)
+                .blendMode(.plusLighter)
+        }
+        .shadow(color: .black.opacity(vm.isOpen ? 0.6 : (vm.activity != nil ? 0.25 : 0)),
+                radius: vm.isOpen ? 22 : 6, x: 0, y: vm.isOpen ? 10 : 3)
+        .animation(.easeOut(duration: 0.18), value: rimStrength)
     }
+
+    /// El vidrio solo al abrir: en reposo la isla debe fundirse con el notch.
+    private var useGlass: Bool { prefs.glassBackground && vm.isOpen }
 
     /// Intensidad del contorno según el estado: siempre visible, un poco más al pasar el mouse.
     private var rimStrength: Double {
@@ -107,10 +121,10 @@ struct RootView: View {
     /// Blanco especular: tenue arriba, intenso en el borde inferior (luz cenital).
     private var rimGradient: LinearGradient {
         LinearGradient(stops: [
-            .init(color: .white.opacity(0.28), location: 0.00),
-            .init(color: .white.opacity(0.10), location: 0.30),
-            .init(color: .white.opacity(0.55), location: 0.80),
-            .init(color: .white.opacity(0.95), location: 1.00)
+            .init(color: .white.opacity(0.45), location: 0.00),
+            .init(color: .white.opacity(0.28), location: 0.28),
+            .init(color: .white.opacity(0.70), location: 0.72),
+            .init(color: .white.opacity(1.00), location: 1.00)
         ], startPoint: .top, endPoint: .bottom)
     }
 
@@ -126,8 +140,13 @@ struct RootView: View {
     @ViewBuilder
     private var content: some View {
         if vm.isOpen {
-            OpenView(vm: vm)
-                .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
+            VStack(spacing: 0) {
+                // La fila de la barra de menús queda libre: solo el notch.
+                Color.clear.frame(height: vm.notchSize.height)
+                OpenView(vm: vm)
+                    .frame(height: prefs.expandedHeight)
+            }
+            .transition(.opacity)
         } else {
             ClosedView(vm: vm)
         }
@@ -204,10 +223,6 @@ struct ClosedView: View {
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(charging ? Color.green : .white)
                 .padding(.leading, 6)
-        case .timer:
-            Image(systemName: "timer")
-                .font(.system(size: 12, weight: .semibold))
-                .padding(.leading, 6)
         case .message(_, let symbol, let tint):
             Image(systemName: symbol)
                 .font(.system(size: 12, weight: .semibold))
@@ -234,10 +249,6 @@ struct ClosedView: View {
         case .battery(let percent, _, _):
             Text("\(percent)%")
                 .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .padding(.trailing, 6)
-        case .timer(let remaining):
-            Text(TimeFormat.clock(remaining))
-                .font(.system(size: 12, weight: .semibold, design: .rounded).monospacedDigit())
                 .padding(.trailing, 6)
         case .message(let text, _, _):
             Text(text)
@@ -268,11 +279,12 @@ struct OpenView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-                .frame(height: vm.metrics.hasNotch ? vm.notchSize.height : 26)
+                .frame(height: 30)
             Divider().overlay(Color.white.opacity(0.08))
             body(for: vm.tab)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(14)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
         }
         .foregroundStyle(.white)
     }
@@ -282,22 +294,12 @@ struct OpenView: View {
             switch $0 {
             case .music: return prefs.enableMusic
             case .shelf: return prefs.enableShelf
-            case .widgets: return prefs.enableWidgets
             }
         }
     }
 
     private var header: some View {
         HStack(spacing: 8) {
-            Text(Host.current().localizedName ?? "Mac")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.white.opacity(0.5))
-                .padding(.leading, 14)
-                .lineLimit(1)
-            Spacer(minLength: 0)
-            if vm.metrics.hasNotch {
-                Color.clear.frame(width: vm.notchSize.width - 40)
-            }
             Spacer(minLength: 0)
             HStack(spacing: 4) {
                 ForEach(availableTabs) { tab in
@@ -306,15 +308,19 @@ struct OpenView: View {
                     }
                 }
                 Button {
-                    vm.isPinned.toggle()
+                    withAnimation(.islandFast) { vm.isPinned.toggle() }
                 } label: {
                     Image(systemName: vm.isPinned ? "pin.fill" : "pin")
                         .font(.system(size: 10, weight: .semibold))
-                        .frame(width: 22, height: 20)
+                        .frame(width: 24, height: 20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(Color.accentColor.opacity(vm.isPinned ? 0.85 : 0))
+                        )
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(vm.isPinned ? Color.accentColor : .white.opacity(0.45))
-                .help("Mantener abierto")
+                .foregroundStyle(vm.isPinned ? .white : .white.opacity(0.45))
+                .help(vm.isPinned ? "Fijada: no se cierra al alejar el mouse" : "Fijar abierta")
 
                 Button {
                     AppDelegate.shared?.showSettings()
@@ -336,7 +342,6 @@ struct OpenView: View {
         switch tab {
         case .music: MusicView(vm: vm)
         case .shelf: ShelfView(vm: vm)
-        case .widgets: WidgetsView(vm: vm)
         }
     }
 }

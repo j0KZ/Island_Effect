@@ -29,8 +29,9 @@ final class NotchPanel: NSPanel {
 
 /// Hosting view que deja pasar los clics fuera del área visible de la isla.
 final class PassthroughHostingView<Content: View>: NSHostingView<Content> {
-    /// Rectángulo activo en coordenadas de la vista (origen abajo-izquierda).
-    var activeRect: () -> CGRect = { .zero }
+    /// ¿El punto (en coordenadas de la vista, origen abajo-izquierda) pertenece
+    /// a la isla? Todo lo demás deja pasar el clic a la app de abajo.
+    var isActive: (NSPoint) -> Bool = { _ in false }
 
     required init(rootView: Content) {
         super.init(rootView: rootView)
@@ -40,7 +41,7 @@ final class PassthroughHostingView<Content: View>: NSHostingView<Content> {
     required init?(coder: NSCoder) { fatalError() }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
-        guard activeRect().contains(point) else { return nil }
+        guard isActive(point) else { return nil }
         return super.hitTest(point)
     }
 }

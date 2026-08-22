@@ -79,6 +79,7 @@ struct SettingsView: View {
                 Text("\(Int(prefs.rimOpacity * 100))%").monospacedDigit().frame(width: 40, alignment: .trailing)
             }
             Toggle("Halo exterior del contorno", isOn: $prefs.rimGlow)
+            Toggle("Fondo translúcido al abrir", isOn: $prefs.glassBackground)
             Toggle("Degradado sutil en el fondo", isOn: $prefs.tintedBackground)
             Toggle("Reloj de 24 horas", isOn: $prefs.use24hClock)
         }
@@ -92,7 +93,9 @@ struct SettingsView: View {
             Section("Pestañas") {
                 Toggle("Música", isOn: $prefs.enableMusic)
                 Toggle("Repisa de archivos", isOn: $prefs.enableShelf)
-                Toggle("Widgets", isOn: $prefs.enableWidgets)
+                Text("La repisa es un bolsillo: sueltas archivos sobre el notch, quedan ahí y los vuelves a arrastrar a donde los necesites.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 Toggle("Recordar archivos de la repisa entre sesiones", isOn: $prefs.shelfPersists)
             }
             Section("Live activities") {
@@ -176,6 +179,12 @@ final class SettingsWindowController: NSWindowController {
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.isReleasedWhenClosed = false
         window.center()
+        // Un poco más abajo: así nunca queda bajo la isla desplegada.
+        if let screen = window.screen ?? NSScreen.main {
+            var frame = window.frame
+            frame.origin.y = min(frame.origin.y, screen.visibleFrame.maxY - frame.height - 140)
+            window.setFrame(frame, display: false)
+        }
         self.init(window: window)
     }
 

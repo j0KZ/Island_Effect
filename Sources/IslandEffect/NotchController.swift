@@ -18,11 +18,15 @@ final class NotchController {
     private var cancellables = Set<AnyCancellable>()
     private var hoverTimer: Timer?
     private var lastMouseLocation = CGPoint(x: -1, y: -1)
+    private var suppressUntil = Date.distantPast
     private var lastScrollAt = Date.distantPast
     private var scrollAccumulator: CGFloat = 0
 
     /// Margen transparente alrededor del contenido (para sombras y para tener área de hover).
     private let margin: CGFloat = 60
+    /// Holgura del área sensible: mínima en reposo (para no invadir la barra
+    /// de menús) y algo mayor con la isla abierta.
+    private var hoverPadding: CGFloat { viewModel.isOpen ? 14 : 4 }
 
     private init() {
         let screen = ScreenMetrics.targetScreen(followMouse: Prefs.shared.followMouseScreen)
@@ -41,7 +45,7 @@ final class NotchController {
     private func buildPanel() {
         let root = RootView(vm: viewModel)
         let hosting = PassthroughHostingView(rootView: root)
-        hosting.activeRect = { [weak self] in self?.activeRectInView() ?? .zero }
+        hosting.isActive = { [weak self] point in self?.isInsideIslandView(point) ?? false }
         let panel = NotchPanel(contentRect: windowFrame())
         panel.contentView = hosting
         panel.orderFrontRegardless()
@@ -68,38 +72,43 @@ final class NotchController {
         return NSRect(x: x, y: y, width: size.width, height: size.height)
     }
 
-    /// Área interactiva (en coordenadas de la vista) según el estado actual.
-    private func activeRectInView() -> CGRect {
-        guard let panel else { return .zero }
-        let size = viewModel.currentSize
-        let bounds = panel.contentView?.bounds ?? .zero
-        let padding: CGFloat = viewModel.isOpen ? 10 : 2
-        return CGRect(x: (bounds.width - size.width) / 2 - padding,
-                      y: bounds.height - size.height - padding,
-                      width: size.width + padding * 2,
-                      height: size.height + padding)
+    /// Rectángulos activos en coordenadas de PANTALLA.
+    /// Cerrada: solo el notch (las alas de las live activities no deben robar
+    /// clics a los íconos de la barra de menús).
+    /// Abierta: el notch más el panel que cuelga por debajo.
+    private func islandRects(padding: CGFloat = 0) -> [CGRect] {
+        let screen = currentScreen
+        let notch = viewModel.notchSize
+        let notchRect = CGRect(x: screen.frame.midX - notch.width / 2 - padding,
+                               y: screen.frame.maxY - notch.height - padding,
+                               width: notch.width + padding * 2,
+                               height: notch.height + padding)
+        guard viewModel.isOpen else {
+            let closed = viewModel.closedSize
+            let height = max(closed.height, 12)
+            return [CGRect(x: screen.frame.midX - notch.width / 2 - padding,
+                           y: screen.frame.maxY - height - padding,
+                           width: notch.width + padding * 2,
+                           height: height + padding)]
+        }
+        let board = CGSize(width: prefs.expandedWidth, height: prefs.expandedHeight)
+        let boardRect = CGRect(x: screen.frame.midX - board.width / 2 - padding,
+                               y: screen.frame.maxY - notch.height - board.height - padding,
+                               width: board.width + padding * 2,
+                               height: board.height + padding * 2)
+        return [notchRect, boardRect]
     }
 
-    /// Área de la isla en coordenadas de pantalla.
-    private func activeRectOnScreen(expandBy: CGFloat = 0) -> CGRect {
-        let size = viewModel.currentSize
-        let screen = currentScreen
-        return CGRect(x: screen.frame.midX - size.width / 2 - expandBy,
-                      y: screen.frame.maxY - size.height - expandBy,
-                      width: size.width + expandBy * 2,
-                      height: size.height + expandBy)
+    private func isInsideIsland(_ point: CGPoint, padding: CGFloat = 0) -> Bool {
+        islandRects(padding: padding).contains { $0.contains(point) }
     }
 
-    /// Zona sensible al hover cuando la isla está cerrada (un poco más generosa que el notch).
-    private func hoverRectOnScreen() -> CGRect {
-        if viewModel.isOpen { return activeRectOnScreen(expandBy: 18) }
-        let size = viewModel.closedSize
-        let screen = currentScreen
-        let extra: CGFloat = 6
-        return CGRect(x: screen.frame.midX - size.width / 2 - extra,
-                      y: screen.frame.maxY - max(size.height, 12) - extra,
-                      width: size.width + extra * 2,
-                      height: max(size.height, 12) + extra)
+    /// Lo mismo, pero en coordenadas de la vista (origen abajo-izquierda).
+    private func isInsideIslandView(_ point: CGPoint) -> Bool {
+        guard let panel else { return false }
+        let origin = panel.frame.origin
+        let screenPoint = CGPoint(x: origin.x + point.x, y: origin.y + point.y)
+        return isInsideIsland(screenPoint, padding: viewModel.isOpen ? 2 : 0)
     }
 
     func relayout() {
@@ -179,8 +188,8 @@ final class NotchController {
         if let g = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown], handler: { [weak self] _ in
             Task { @MainActor in
                 guard let self, self.viewModel.isOpen else { return }
-                if !self.hoverRectOnScreen().contains(NSEvent.mouseLocation) {
-                    IslandDebug.log("close: clic fuera en \(NSEvent.mouseLocation) rect \(self.hoverRectOnScreen())")
+                if !self.isInsideIsland(NSEvent.mouseLocation, padding: self.hoverPadding) {
+                    IslandDebug.log("close: clic fuera en \(NSEvent.mouseLocation)")
                     withAnimation(.island) { self.viewModel.close(force: true) }
                 } else {
                     IslandDebug.log("clic dentro en \(NSEvent.mouseLocation)")
@@ -201,17 +210,19 @@ final class NotchController {
             relayout()
         }
 
-        let inside = hoverRectOnScreen().contains(location)
+        let inside = isInsideIsland(location, padding: hoverPadding)
         if inside {
             if !viewModel.isHovering {
                 withAnimation(.islandFast) { viewModel.isHovering = true }
             }
             closeWork?.cancel()
-            guard prefs.openOnHover, !viewModel.isOpen, openWork == nil else { return }
+            guard prefs.openOnHover, !viewModel.isOpen, openWork == nil,
+                  Date() >= suppressUntil,
+                  !(AppDelegate.shared?.settingsVisible ?? false) else { return }
             let work = DispatchWorkItem { [weak self] in
                 guard let self else { return }
                 self.openWork = nil
-                guard self.hoverRectOnScreen().contains(NSEvent.mouseLocation) else { return }
+                guard self.isInsideIsland(NSEvent.mouseLocation, padding: hoverPadding) else { return }
                 withAnimation(.island) { self.viewModel.open() }
             }
             openWork = work
@@ -226,8 +237,8 @@ final class NotchController {
             let work = DispatchWorkItem { [weak self] in
                 guard let self else { return }
                 self.closeWork = nil
-                guard !self.hoverRectOnScreen().contains(NSEvent.mouseLocation) else { return }
-                IslandDebug.log("close: hover fuera en \(NSEvent.mouseLocation) rect \(self.hoverRectOnScreen())")
+                guard !self.isInsideIsland(NSEvent.mouseLocation, padding: hoverPadding) else { return }
+                IslandDebug.log("close: hover fuera en \(NSEvent.mouseLocation)")
                 withAnimation(.island) { self.viewModel.close() }
             }
             closeWork = work
@@ -237,7 +248,7 @@ final class NotchController {
 
     private func handleScroll(_ event: NSEvent) {
         guard !viewModel.isOpen else { return }
-        guard hoverRectOnScreen().contains(NSEvent.mouseLocation) else { return }
+        guard isInsideIsland(NSEvent.mouseLocation, padding: hoverPadding) else { return }
 
         let dy = event.scrollingDeltaY
         let dx = event.scrollingDeltaX
@@ -266,6 +277,14 @@ final class NotchController {
 
     func toggleOpen() {
         withAnimation(.island) { viewModel.toggle() }
+    }
+
+    /// Cierra y desfija la isla para que no tape una ventana de la app.
+    func closeForModalWindow() {
+        openWork?.cancel(); openWork = nil
+        viewModel.isPinned = false
+        withAnimation(.island) { viewModel.close(force: true) }
+        suppressUntil = Date().addingTimeInterval(1.0)
     }
 
     func openTab(_ tab: NotchTab) {
