@@ -22,6 +22,7 @@ final class Prefs: ObservableObject {
     @Published var hoverCloseDelay: Double { didSet { d.set(hoverCloseDelay, forKey: K.hoverCloseDelay) } }
     @Published var followMouseScreen: Bool { didSet { d.set(followMouseScreen, forKey: K.followMouseScreen) } }
     @Published var haptics: Bool { didSet { d.set(haptics, forKey: K.haptics) } }
+    @Published var showMenuBarIcon: Bool { didSet { d.set(showMenuBarIcon, forKey: K.showMenuBarIcon) } }
 
     // Gestos
     @Published var scrollVolume: Bool { didSet { d.set(scrollVolume, forKey: K.scrollVolume) } }
@@ -56,6 +57,7 @@ final class Prefs: ObservableObject {
         static let hoverCloseDelay = "hoverCloseDelay"
         static let followMouseScreen = "followMouseScreen"
         static let haptics = "haptics"
+        static let showMenuBarIcon = "showMenuBarIcon"
         static let scrollVolume = "scrollVolume"
         static let scrollTrack = "scrollTrack"
         static let liveMusic = "liveMusic"
@@ -85,6 +87,7 @@ final class Prefs: ObservableObject {
             K.hoverCloseDelay: 0.25,
             K.followMouseScreen: true,
             K.haptics: true,
+            K.showMenuBarIcon: true,
             K.scrollVolume: true,
             K.scrollTrack: true,
             K.liveMusic: true,
@@ -111,6 +114,7 @@ final class Prefs: ObservableObject {
         hoverCloseDelay = d.double(forKey: K.hoverCloseDelay)
         followMouseScreen = d.bool(forKey: K.followMouseScreen)
         haptics = d.bool(forKey: K.haptics)
+        showMenuBarIcon = d.bool(forKey: K.showMenuBarIcon)
         scrollVolume = d.bool(forKey: K.scrollVolume)
         scrollTrack = d.bool(forKey: K.scrollTrack)
         liveMusic = d.bool(forKey: K.liveMusic)
@@ -128,7 +132,7 @@ final class Prefs: ObservableObject {
     func resetToDefaults() {
         for key in [K.expandedWidth, K.expandedHeight, K.cornerRadius, K.extraClosedWidth,
                     K.tintedBackground, K.rimOpacity, K.rimGlow, K.glassBackground, K.openOnHover, K.hoverOpenDelay, K.hoverCloseDelay,
-                    K.followMouseScreen, K.haptics, K.scrollVolume, K.scrollTrack,
+                    K.followMouseScreen, K.haptics, K.showMenuBarIcon, K.scrollVolume, K.scrollTrack,
                     K.liveMusic, K.liveVolume, K.liveBrightness, K.liveBattery,
                     K.activityDuration, K.enableMusic, K.enableShelf,
                     K.shelfPersists, K.use24hClock] {
@@ -147,6 +151,7 @@ final class Prefs: ObservableObject {
         hoverCloseDelay = d.double(forKey: K.hoverCloseDelay)
         followMouseScreen = d.bool(forKey: K.followMouseScreen)
         haptics = d.bool(forKey: K.haptics)
+        showMenuBarIcon = d.bool(forKey: K.showMenuBarIcon)
         scrollVolume = d.bool(forKey: K.scrollVolume)
         scrollTrack = d.bool(forKey: K.scrollTrack)
         liveMusic = d.bool(forKey: K.liveMusic)

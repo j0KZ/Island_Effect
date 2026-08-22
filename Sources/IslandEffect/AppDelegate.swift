@@ -1,11 +1,13 @@
 import AppKit
 import SwiftUI
+import Combine
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     static private(set) var shared: AppDelegate?
 
     private var statusItem: NSStatusItem?
     private var settingsWindow: SettingsWindowController?
+    private var cancellables = Set<AnyCancellable>()
     /// Con Preferencias abierto la isla no debe desplegarse: taparía la ventana.
     var settingsVisible: Bool { settingsWindow?.window?.isVisible ?? false }
 
@@ -19,7 +21,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MediaManager.shared.start()
 
         NotchController.shared.start()
-        setupStatusItem()
+        syncStatusItem()
+
+        // El ícono de la barra empuja los demás: que se pueda quitar.
+        Prefs.shared.$showMenuBarIcon
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.syncStatusItem() }
+            .store(in: &cancellables)
 
         if ProcessInfo.processInfo.environment["ISLAND_SETTINGS"] == "1" {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.showSettings() }
@@ -33,7 +41,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Menu bar
 
-    private func setupStatusItem() {
+    private func syncStatusItem() {
+        guard Prefs.shared.showMenuBarIcon else {
+            if let statusItem { NSStatusBar.system.removeStatusItem(statusItem) }
+            statusItem = nil
+            return
+        }
+        guard statusItem == nil else { return }
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.image = NSImage(systemSymbolName: "rectangle.topthird.inset.filled",
                                      accessibilityDescription: "Island Effect")

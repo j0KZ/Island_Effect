@@ -173,10 +173,10 @@ final class NotchController {
     private func installMonitors() {
         // Sondeo de la posición del puntero: es lo único fiable cuando hay apps
         // en pantalla completa o que capturan los eventos globales.
-        let poll = Timer(timeInterval: 1.0 / 25.0, repeats: true) { [weak self] _ in
+        let poll = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.handleMouseMoved() }
         }
-        poll.tolerance = 0.01
+        poll.tolerance = 0.005
         RunLoop.main.add(poll, forMode: .common)
         hoverTimer = poll
 
@@ -200,7 +200,8 @@ final class NotchController {
 
     private func handleMouseMoved() {
         let location = NSEvent.mouseLocation
-        if location == lastMouseLocation, !viewModel.isOpen, !viewModel.isHovering { return }
+        if location == lastMouseLocation, !viewModel.isOpen, !viewModel.isHovering,
+           panel?.ignoresMouseEvents == true { return }
         lastMouseLocation = location
         // Cambia de pantalla si el mouse se fue a otro monitor y la isla está cerrada.
         if prefs.followMouseScreen, !viewModel.isOpen,
@@ -211,6 +212,17 @@ final class NotchController {
         }
 
         let inside = isInsideIsland(location, padding: hoverPadding)
+
+        // Clave: `hitTest` solo decide el enrutado dentro de nuestra app; la
+        // ventana igual se come el clic. Para que los íconos de la barra de
+        // menús sigan siendo pulsables hay que desactivar los eventos de la
+        // ventana mientras el puntero no esté sobre la isla.
+        let overIsland = isInsideIsland(location, padding: 2)
+        if let panel, panel.ignoresMouseEvents == overIsland {
+            panel.ignoresMouseEvents = !overIsland
+            IslandDebug.log("eventos de la ventana: \(overIsland ? "activos" : "pasan de largo") en \(location)")
+        }
+
         if inside {
             if !viewModel.isHovering {
                 withAnimation(.islandFast) { viewModel.isHovering = true }

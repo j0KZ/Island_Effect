@@ -13,7 +13,7 @@ final class NotchPanel: NSPanel {
         isOpaque = false
         backgroundColor = .clear
         hasShadow = false
-        ignoresMouseEvents = false
+        ignoresMouseEvents = true
         isMovable = false
         isMovableByWindowBackground = false
         hidesOnDeactivate = false

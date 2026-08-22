@@ -36,12 +36,17 @@ struct SettingsView: View {
             Divider()
             Toggle("Seguir la pantalla donde está el mouse", isOn: $prefs.followMouseScreen)
             Toggle("Respuesta háptica del trackpad", isOn: $prefs.haptics)
+            Toggle("Ícono en la barra de menús", isOn: $prefs.showMenuBarIcon)
+            Text("Si lo apagas, la barra deja de correrse hacia la izquierda. Vuelves acá desde el engranaje de la isla.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             Toggle("Abrir al iniciar sesión", isOn: $prefs.launchAtLogin)
                 .onChange(of: prefs.launchAtLogin) { _, enabled in
                     LoginItem.set(enabled: enabled)
                 }
             Divider()
             HStack {
+                Button("Salir de Island Effect") { NSApp.terminate(nil) }
                 Spacer()
                 Button("Restaurar valores por omisión") { prefs.resetToDefaults() }
             }

@@ -17,8 +17,10 @@ pasar el mouse.
 - Clic en el notch = fijar abierta / cerrar. El botón de chincheta la mantiene
   abierta mientras hagas cosas dentro.
 - Al abrirse, el panel **cuelga por debajo de la barra de menús**: en esa fila
-  solo queda el notch, así que los íconos de tus otras apps siguen visibles y
-  se pueden pulsar.
+  solo queda el notch, así que los íconos de tus otras apps siguen visibles.
+- La ventana solo acepta clics mientras el puntero está sobre la isla
+  (`ignoresMouseEvents` conmutado a 60 Hz): todo lo demás llega a la barra de
+  menús como si la isla no existiera.
 - Fondo translúcido de verdad (`NSVisualEffectView`): desenfoca lo que hay
   detrás en vez de ser un rectángulo negro.
 - Contorno tipo *Liquid Glass*: borde especular, más intenso en el canto
@@ -53,7 +55,8 @@ pasar el mouse.
 **Preferencias** (ícono de engranaje en la isla o el menú de la barra)
 - Tamaño abierto, radio de esquinas, ancho extra en reposo, contorno, halo y
   fondo translúcido.
-- Retardos de apertura/cierre, háptica, pantalla a seguir, abrir al iniciar sesión.
+- Retardos de apertura/cierre, háptica, pantalla a seguir, abrir al iniciar
+  sesión y ocultar el ícono de la barra de menús (con botón de salir acá mismo).
 - Qué pestañas y qué live activities quieres, y su duración. Las activities
   ocupan un momento el espacio a los lados del notch: si te estorban, cada una
   se apaga por separado.
