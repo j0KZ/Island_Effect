@@ -52,33 +52,75 @@ struct RootView: View {
     }
 
     private var topRadius: CGFloat { vm.isOpen ? 12 : 8 }
-    private var strokeOpacity: Double {
-        if vm.isOpen { return 0.10 }
-        return vm.activity != nil ? 0.06 : 0
-    }
     private var bottomRadius: CGFloat {
         if vm.isOpen { return prefs.cornerRadius }
         return vm.activity != nil ? 14 : (vm.metrics.hasNotch ? 10 : 6)
     }
 
     private var background: some View {
-        NotchShape(topRadius: topRadius, bottomRadius: bottomRadius)
+        let shape = NotchShape(topRadius: topRadius, bottomRadius: bottomRadius)
+        return shape
             .fill(Color.black)
             .overlay(
-                NotchShape(topRadius: topRadius, bottomRadius: bottomRadius)
-                    .fill(
-                        LinearGradient(colors: [Color.white.opacity(prefs.tintedBackground ? 0.07 : 0),
-                                                Color.white.opacity(0)],
-                                       startPoint: .top, endPoint: .bottom)
-                    )
+                shape.fill(
+                    LinearGradient(colors: [Color.white.opacity(prefs.tintedBackground ? 0.07 : 0),
+                                            Color.white.opacity(0)],
+                                   startPoint: .top, endPoint: .bottom)
+                )
             )
+            // Halo exterior difuso: es lo que deja ubicar la isla sobre una barra negra.
             .overlay(
-                NotchShape(topRadius: topRadius, bottomRadius: bottomRadius)
-                    .stroke(Color.white.opacity(strokeOpacity), lineWidth: 0.8)
+                shape.stroke(rimGradient, lineWidth: 2.6)
+                    .blur(radius: 2.6)
+                    .opacity(prefs.rimGlow ? rimStrength * 0.55 : 0)
             )
-            // En reposo la isla debe ser indistinguible del notch: sin borde ni sombra.
+            // Borde especular nítido.
+            .overlay(shape.stroke(rimGradient, lineWidth: 0.9).opacity(rimStrength))
+            // Refracción cromática apenas insinuada en los extremos.
+            .overlay(
+                shape.stroke(rimTint, lineWidth: 0.9)
+                    .opacity(rimStrength * 0.45)
+                    .blendMode(.plusLighter)
+            )
+            // Brillo interior pegado al borde inferior, como el grosor del vidrio.
+            .overlay(
+                shape.stroke(Color.white.opacity(0.5), lineWidth: 1.6)
+                    .blur(radius: 1.8)
+                    .mask(
+                        LinearGradient(colors: [.clear, .black], startPoint: .center, endPoint: .bottom)
+                    )
+                    .opacity(rimStrength * 0.7)
+            )
             .shadow(color: .black.opacity(vm.isOpen ? 0.6 : (vm.activity != nil ? 0.25 : 0)),
                     radius: vm.isOpen ? 22 : 6, x: 0, y: vm.isOpen ? 10 : 3)
+            .animation(.easeOut(duration: 0.18), value: rimStrength)
+    }
+
+    /// Intensidad del contorno según el estado: siempre visible, un poco más al pasar el mouse.
+    private var rimStrength: Double {
+        let base = max(0, min(1, prefs.rimOpacity))
+        if vm.isOpen { return base }
+        if vm.isHovering { return min(1, base * 1.25) }
+        return base * 0.9
+    }
+
+    /// Blanco especular: tenue arriba, intenso en el borde inferior (luz cenital).
+    private var rimGradient: LinearGradient {
+        LinearGradient(stops: [
+            .init(color: .white.opacity(0.28), location: 0.00),
+            .init(color: .white.opacity(0.10), location: 0.30),
+            .init(color: .white.opacity(0.55), location: 0.80),
+            .init(color: .white.opacity(0.95), location: 1.00)
+        ], startPoint: .top, endPoint: .bottom)
+    }
+
+    private var rimTint: LinearGradient {
+        LinearGradient(colors: [
+            Color(red: 0.40, green: 0.78, blue: 1.00),
+            .clear,
+            .clear,
+            Color(red: 0.78, green: 0.55, blue: 1.00)
+        ], startPoint: .leading, endPoint: .trailing)
     }
 
     @ViewBuilder
@@ -239,7 +281,6 @@ struct OpenView: View {
         NotchTab.allCases.filter {
             switch $0 {
             case .music: return prefs.enableMusic
-            case .clipboard: return prefs.enableClipboard
             case .shelf: return prefs.enableShelf
             case .widgets: return prefs.enableWidgets
             }
@@ -294,7 +335,6 @@ struct OpenView: View {
     private func body(for tab: NotchTab) -> some View {
         switch tab {
         case .music: MusicView(vm: vm)
-        case .clipboard: ClipboardView(vm: vm)
         case .shelf: ShelfView(vm: vm)
         case .widgets: WidgetsView(vm: vm)
         }

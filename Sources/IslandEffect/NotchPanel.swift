@@ -18,15 +18,8 @@ final class NotchPanel: NSPanel {
         isMovableByWindowBackground = false
         hidesOnDeactivate = false
         becomesKeyOnlyIfNeeded = true
-        canHide = false
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         animationBehavior = .none
-    }
-
-    /// El panel solo roba el foco del teclado cuando la isla lo necesita
-    /// (buscador del portapapeles); el resto del tiempo no molesta a la app de adelante.
-    func setWantsKeyboard(_ wants: Bool) {
-        becomesKeyOnlyIfNeeded = !wants
     }
 
     override var canBecomeKey: Bool { true }

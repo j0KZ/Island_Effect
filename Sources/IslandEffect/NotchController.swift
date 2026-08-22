@@ -21,10 +21,6 @@ final class NotchController {
     private var lastScrollAt = Date.distantPast
     private var scrollAccumulator: CGFloat = 0
 
-    /// App que tenía el foco antes de abrir el portapapeles, para devolvérselo al pegar.
-    private var previousApp: NSRunningApplication?
-    private var clipboardHotKey: GlobalHotKey?
-
     /// Margen transparente alrededor del contenido (para sombras y para tener área de hover).
     private let margin: CGFloat = 60
 
@@ -39,7 +35,6 @@ final class NotchController {
         buildPanel()
         installMonitors()
         observeSystem()
-        registerClipboardHotKey()
         relayout()
     }
 
@@ -186,11 +181,7 @@ final class NotchController {
                 guard let self, self.viewModel.isOpen else { return }
                 if !self.hoverRectOnScreen().contains(NSEvent.mouseLocation) {
                     IslandDebug.log("close: clic fuera en \(NSEvent.mouseLocation) rect \(self.hoverRectOnScreen())")
-                    if self.viewModel.tab == .clipboard {
-                        self.dismissClipboard(pasting: false)
-                    } else {
-                        withAnimation(.island) { self.viewModel.close(force: true) }
-                    }
+                    withAnimation(.island) { self.viewModel.close(force: true) }
                 } else {
                     IslandDebug.log("clic dentro en \(NSEvent.mouseLocation)")
                 }
@@ -285,75 +276,4 @@ final class NotchController {
         }
     }
 
-    // MARK: - Portapapeles
-
-    /// Registra (o vuelve a registrar) el atajo global que abre el historial.
-    func registerClipboardHotKey() {
-        clipboardHotKey = nil
-        let spec = prefs.clipboardHotKey
-        guard prefs.enableClipboard, prefs.clipboardHotKeyEnabled, spec.isValid else { return }
-        clipboardHotKey = GlobalHotKey(spec: spec) {
-            Task { @MainActor in NotchController.shared.toggleClipboard() }
-        }
-        IslandDebug.log("atajo del portapapeles: \(spec.display)")
-    }
-
-    func toggleClipboard() {
-        if viewModel.isOpen && viewModel.tab == .clipboard {
-            dismissClipboard(pasting: false)
-        } else {
-            openClipboard()
-        }
-    }
-
-    func openClipboard() {
-        previousApp = NSWorkspace.shared.frontmostApplication
-        ClipboardStore.shared.query = ""
-        ClipboardStore.shared.selection = 0
-        openTab(.clipboard)
-        grabKeyboard()
-    }
-
-    /// La vista del portapapeles avisa que necesita teclado (por ejemplo si llegaste con el mouse).
-    func prepareClipboard() {
-        if previousApp == nil {
-            let front = NSWorkspace.shared.frontmostApplication
-            if front?.bundleIdentifier != Bundle.main.bundleIdentifier { previousApp = front }
-        }
-        grabKeyboard()
-    }
-
-    private func grabKeyboard() {
-        guard let panel else { return }
-        panel.setWantsKeyboard(true)
-        panel.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-    }
-
-    func releaseKeyboard() {
-        panel?.setWantsKeyboard(false)
-    }
-
-    /// Cierra la isla, devuelve el foco a la app anterior y (si corresponde) manda un ⌘V.
-    func dismissClipboard(pasting: Bool) {
-        let target = previousApp
-        previousApp = nil
-        releaseKeyboard()
-        withAnimation(.island) {
-            viewModel.isPinned = false
-            viewModel.close(force: true)
-        }
-        panel?.resignKey()
-
-        if let target, target.bundleIdentifier != Bundle.main.bundleIdentifier {
-            target.activate()
-        } else {
-            NSApp.deactivate()
-        }
-
-        guard pasting, Paster.isTrusted else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.14) {
-            Paster.pressCommandV()
-        }
-    }
 }

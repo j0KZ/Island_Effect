@@ -15,7 +15,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         BrightnessMonitor.shared.start()
         BatteryMonitor.shared.start()
         MediaManager.shared.start()
-        ClipboardStore.shared.start()
 
         NotchController.shared.start()
         setupStatusItem()
@@ -40,9 +39,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let music = NSMenuItem(title: "Música", action: #selector(openMusic), keyEquivalent: "")
         music.target = self
         menu.addItem(music)
-        let clipboard = NSMenuItem(title: "Portapapeles", action: #selector(openClipboard), keyEquivalent: "")
-        clipboard.target = self
-        menu.addItem(clipboard)
         let shelf = NSMenuItem(title: "Repisa", action: #selector(openShelf), keyEquivalent: "")
         shelf.target = self
         menu.addItem(shelf)
@@ -67,10 +63,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openMusic() {
         Task { @MainActor in NotchController.shared.openTab(.music) }
-    }
-
-    @objc private func openClipboard() {
-        Task { @MainActor in NotchController.shared.openClipboard() }
     }
 
     @objc private func openShelf() {

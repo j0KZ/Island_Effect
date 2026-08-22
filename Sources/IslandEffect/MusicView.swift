@@ -34,72 +34,91 @@ struct MusicView: View {
     private var info: NowPlaying { media.info }
 
     private var player: some View {
-        HStack(spacing: 14) {
-            Button { media.activateApp() } label: {
-                ArtworkView(size: 104, corner: 14)
-                    .shadow(color: .black.opacity(0.5), radius: 10, y: 5)
-            }
-            .buttonStyle(.plain)
-            .help("Abrir \(info.app.displayName)")
-
-            VStack(alignment: .leading, spacing: 8) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(info.title)
-                        .font(.system(size: 14, weight: .semibold))
-                        .lineLimit(1)
-                    Text(info.artist.isEmpty ? info.album : info.artist)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.6))
-                        .lineLimit(1)
+        GeometryReader { geo in
+            // La carátula ocupa todo el alto disponible: así el panel se ve
+            // proporcionado en lugar de dejar una franja vacía abajo.
+            let art = max(72, min(geo.size.height, geo.size.width * 0.34))
+            HStack(spacing: 16) {
+                Button { media.activateApp() } label: {
+                    ArtworkView(size: art, corner: art * 0.13)
+                        .shadow(color: .black.opacity(0.55), radius: 12, y: 6)
                 }
+                .buttonStyle(.plain)
+                .help("Abrir \(info.app.displayName)")
 
-                VStack(spacing: 3) {
-                    IslandSlider(
-                        value: Binding(
-                            get: { scrubbing ? scrubValue : displayElapsed },
-                            set: { scrubValue = $0 }
-                        ),
-                        range: 0...max(1, info.duration),
-                        height: 5,
-                        onEditingChanged: { editing in
-                            scrubbing = editing
-                            if !editing {
-                                media.seek(to: scrubValue)
-                                displayElapsed = scrubValue
-                            }
+                VStack(alignment: .leading, spacing: 0) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(info.title)
+                            .font(.system(size: 15, weight: .semibold))
+                            .lineLimit(1)
+                        Text(info.artist.isEmpty ? info.album : info.artist)
+                            .font(.system(size: 12))
+                            .foregroundStyle(.white.opacity(0.62))
+                            .lineLimit(1)
+                        if !info.album.isEmpty, !info.artist.isEmpty {
+                            Text(info.album)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.white.opacity(0.35))
+                                .lineLimit(1)
                         }
-                    )
-                    .frame(height: 12)
-
-                    HStack {
-                        Text(TimeFormat.clock(scrubbing ? scrubValue : displayElapsed))
-                        Spacer()
-                        Text(TimeFormat.clock(info.duration))
                     }
-                    .font(.system(size: 9, weight: .medium, design: .rounded).monospacedDigit())
-                    .foregroundStyle(.white.opacity(0.45))
+
+                    Spacer(minLength: 10)
+
+                    VStack(spacing: 4) {
+                        IslandSlider(
+                            value: Binding(
+                                get: { scrubbing ? scrubValue : displayElapsed },
+                                set: { scrubValue = $0 }
+                            ),
+                            range: 0...max(1, info.duration),
+                            height: 5,
+                            onEditingChanged: { editing in
+                                scrubbing = editing
+                                if !editing {
+                                    media.seek(to: scrubValue)
+                                    displayElapsed = scrubValue
+                                }
+                            }
+                        )
+                        .frame(height: 12)
+
+                        HStack {
+                            Text(TimeFormat.clock(scrubbing ? scrubValue : displayElapsed))
+                            Spacer()
+                            Text(info.app.displayName)
+                                .foregroundStyle(.white.opacity(0.3))
+                            Spacer()
+                            Text(TimeFormat.clock(info.duration))
+                        }
+                        .font(.system(size: 9, weight: .medium, design: .rounded).monospacedDigit())
+                        .foregroundStyle(.white.opacity(0.45))
+                    }
+
+                    Spacer(minLength: 10)
+
+                    HStack(spacing: 14) {
+                        CircleButton(symbol: "backward.fill", size: 30, iconSize: 12) { media.previous() }
+                        CircleButton(symbol: info.isPlaying ? "pause.fill" : "play.fill",
+                                     size: 40, iconSize: 15, filled: true) { media.playPause() }
+                        CircleButton(symbol: "forward.fill", size: 30, iconSize: 12) { media.next() }
+
+                        Spacer(minLength: 10)
+
+                        Image(systemName: volume.muted || volumeValue < 0.01 ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.white.opacity(0.5))
+                            .frame(width: 16)
+                            .onTapGesture { volume.setMuted(!volume.muted) }
+                        IslandSlider(value: Binding(
+                            get: { volumeValue },
+                            set: { volumeValue = $0; volume.setVolume(Float($0)) }
+                        ), height: 5)
+                        .frame(width: 96, height: 14)
+                    }
                 }
-
-                HStack(spacing: 12) {
-                    CircleButton(symbol: "backward.fill", size: 28, iconSize: 11) { media.previous() }
-                    CircleButton(symbol: info.isPlaying ? "pause.fill" : "play.fill",
-                                 size: 36, iconSize: 14, filled: true) { media.playPause() }
-                    CircleButton(symbol: "forward.fill", size: 28, iconSize: 11) { media.next() }
-
-                    Spacer(minLength: 8)
-
-                    Image(systemName: volume.muted || volumeValue < 0.01 ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.white.opacity(0.5))
-                        .onTapGesture { volume.setMuted(!volume.muted) }
-                    IslandSlider(value: Binding(
-                        get: { volumeValue },
-                        set: { volumeValue = $0; volume.setVolume(Float($0)) }
-                    ), height: 5)
-                    .frame(width: 90, height: 12)
-                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

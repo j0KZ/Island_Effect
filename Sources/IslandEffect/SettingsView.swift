@@ -4,19 +4,16 @@ import ServiceManagement
 
 struct SettingsView: View {
     @ObservedObject private var prefs = Prefs.shared
-    @State private var accessibilityGranted = Paster.isTrusted
-    private let accessibilityTicker = Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()
 
     var body: some View {
         TabView {
             general.tabItem { Label("General", systemImage: "gearshape") }
             appearance.tabItem { Label("Apariencia", systemImage: "paintbrush") }
             modules.tabItem { Label("Módulos", systemImage: "square.grid.2x2") }
-            clipboard.tabItem { Label("Portapapeles", systemImage: "doc.on.clipboard") }
             gestures.tabItem { Label("Gestos", systemImage: "hand.draw") }
             about.tabItem { Label("Acerca de", systemImage: "info.circle") }
         }
-        .frame(width: 480, height: 400)
+        .frame(width: 460, height: 380)
     }
 
     // MARK: General
@@ -76,6 +73,12 @@ struct SettingsView: View {
                 Slider(value: $prefs.extraClosedWidth, in: 0...80, step: 2)
                 Text("\(Int(prefs.extraClosedWidth))").monospacedDigit().frame(width: 40, alignment: .trailing)
             }
+            HStack {
+                Text("Contorno Liquid Glass")
+                Slider(value: $prefs.rimOpacity, in: 0...1, step: 0.02)
+                Text("\(Int(prefs.rimOpacity * 100))%").monospacedDigit().frame(width: 40, alignment: .trailing)
+            }
+            Toggle("Halo exterior del contorno", isOn: $prefs.rimGlow)
             Toggle("Degradado sutil en el fondo", isOn: $prefs.tintedBackground)
             Toggle("Reloj de 24 horas", isOn: $prefs.use24hClock)
         }
@@ -88,10 +91,6 @@ struct SettingsView: View {
         Form {
             Section("Pestañas") {
                 Toggle("Música", isOn: $prefs.enableMusic)
-                Toggle("Portapapeles", isOn: $prefs.enableClipboard)
-                    .onChange(of: prefs.enableClipboard) { _, _ in
-                        Task { @MainActor in NotchController.shared.registerClipboardHotKey() }
-                    }
                 Toggle("Repisa de archivos", isOn: $prefs.enableShelf)
                 Toggle("Widgets", isOn: $prefs.enableWidgets)
                 Toggle("Recordar archivos de la repisa entre sesiones", isOn: $prefs.shelfPersists)
@@ -110,77 +109,6 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-    }
-
-    // MARK: Portapapeles
-
-    private var clipboard: some View {
-        Form {
-            Section("Atajo") {
-                Toggle("Atajo global para abrir el historial", isOn: $prefs.clipboardHotKeyEnabled)
-                    .onChange(of: prefs.clipboardHotKeyEnabled) { _, _ in reloadHotKey() }
-                HStack {
-                    Text("Combinación")
-                    Spacer()
-                    HotKeyRecorder(keyCode: $prefs.clipboardHotKeyCode,
-                                   modifiers: $prefs.clipboardHotKeyMods,
-                                   onChange: reloadHotKey)
-                }
-                .disabled(!prefs.clipboardHotKeyEnabled)
-                Text("Es el equivalente del ⊞+V de Windows. Después de elegir algo del historial queda en el portapapeles, así que el ⌘V normal lo vuelve a pegar.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Section("Pegado") {
-                Toggle("Pegar automáticamente al elegir", isOn: $prefs.clipboardAutoPaste)
-                HStack(spacing: 8) {
-                    Image(systemName: accessibilityGranted ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                        .foregroundStyle(accessibilityGranted ? .green : .orange)
-                    Text(accessibilityGranted
-                         ? "Permiso de Accesibilidad concedido."
-                         : "Sin Accesibilidad solo se copia; el ⌘V lo tienes que dar tú.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    if !accessibilityGranted {
-                        Button("Conceder…") {
-                            Paster.requestPermission()
-                            Paster.openAccessibilitySettings()
-                        }
-                    }
-                }
-            }
-
-            Section("Historial") {
-                HStack {
-                    Text("Máximo de recortes")
-                    Slider(value: $prefs.clipboardMaxItems, in: 10...300, step: 10)
-                    Text("\(Int(prefs.clipboardMaxItems))")
-                        .monospacedDigit().frame(width: 40, alignment: .trailing)
-                }
-                Toggle("Recordar el historial entre sesiones", isOn: $prefs.clipboardPersists)
-                Toggle("Guardar también imágenes", isOn: $prefs.clipboardKeepImages)
-                Toggle("Ignorar gestores de contraseñas y copias marcadas como privadas",
-                       isOn: $prefs.clipboardIgnoreConfidential)
-                HStack {
-                    Spacer()
-                    Button("Borrar todo el historial", role: .destructive) {
-                        Task { @MainActor in ClipboardStore.shared.purge() }
-                    }
-                }
-            }
-        }
-        .formStyle(.grouped)
-        .onAppear { accessibilityGranted = Paster.isTrusted }
-        .onReceive(accessibilityTicker) { _ in
-            let trusted = Paster.isTrusted
-            if trusted != accessibilityGranted { accessibilityGranted = trusted }
-        }
-    }
-
-    private func reloadHotKey() {
-        Task { @MainActor in NotchController.shared.registerClipboardHotKey() }
     }
 
     // MARK: Gestos
@@ -255,53 +183,5 @@ final class SettingsWindowController: NSWindowController {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
-    }
-}
-
-/// Campo para capturar una combinación de teclas.
-struct HotKeyRecorder: View {
-    @Binding var keyCode: Int
-    @Binding var modifiers: Int
-    var onChange: () -> Void
-
-    @State private var recording = false
-    @State private var monitor: Any?
-
-    var body: some View {
-        Button {
-            recording.toggle()
-        } label: {
-            Text(recording ? "Presiona la combinación…" : HotKeySpec(keyCode: keyCode, modifiers: modifiers).display)
-                .font(.system(size: 13, weight: .medium))
-                .frame(minWidth: 120)
-                .padding(.vertical, 2)
-        }
-        .buttonStyle(.bordered)
-        .tint(recording ? .accentColor : nil)
-        .onChange(of: recording) { _, on in on ? start() : stop() }
-        .onDisappear { stop() }
-        .help("Haz clic y presiona la combinación que quieras")
-    }
-
-    private func start() {
-        guard monitor == nil else { return }
-        monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
-            let mods = HotKeySpec.carbonModifiers(from: event.modifierFlags)
-            if event.keyCode == 53 { // esc cancela
-                recording = false
-                return nil
-            }
-            guard mods != 0 else { NSSound.beep(); return nil }
-            keyCode = Int(event.keyCode)
-            modifiers = mods
-            recording = false
-            onChange()
-            return nil
-        }
-    }
-
-    private func stop() {
-        if let monitor { NSEvent.removeMonitor(monitor) }
-        monitor = nil
     }
 }

@@ -16,6 +16,9 @@ pasar el mouse.
   resorte tipo Dynamic Island; al salir se cierra sola.
 - Clic en el notch = fijar abierta / cerrar. El botón de chincheta la mantiene
   abierta mientras hagas cosas dentro.
+- Contorno tipo *Liquid Glass*: borde especular fino, más intenso abajo, con
+  halo suave. Sirve para ubicar la isla cuando la barra de menús es negra.
+  Regulable de 0 a 100 % en Preferencias.
 - Esquinas superiores invertidas para fundirse con el borde de la pantalla.
 - En pantallas **sin notch** se convierte en un asa centrada bajo la barra de
   menús, con la misma funcionalidad.
@@ -32,12 +35,6 @@ pasar el mouse.
   siguiente y volumen del sistema.
 - Clic en la carátula abre la app de origen.
 
-**Portapapeles**
-- Historial buscable de texto, imágenes y archivos, con la app de origen y hace
-  cuánto se copió.
-- Ítems fijables, atajo global configurable (por omisión `⌥⌘V`), pegado
-  automático opcional y filtro de contenido confidencial (contraseñas).
-
 **Repisa de archivos**
 - Arrastra archivos al notch y quedan ahí. Arrástralos de vuelta a donde
   quieras, o usa abrir / mostrar en Finder / copiar ruta.
@@ -53,7 +50,7 @@ pasar el mouse.
 - Arrastrar archivos = van a la repisa.
 
 **Preferencias** (ícono de engranaje en la isla o el menú de la barra)
-- Tamaño abierto, radio de esquinas, ancho extra en reposo, degradado.
+- Tamaño abierto, radio de esquinas, ancho extra en reposo, contorno y halo.
 - Retardos de apertura/cierre, háptica, pantalla a seguir, abrir al iniciar sesión.
 - Qué pestañas y qué live activities quieres, y su duración.
 
@@ -73,9 +70,8 @@ Requiere macOS 14 o superior y las Command Line Tools de Xcode (`swift`).
 | Permiso | Para qué | Cuándo |
 |---|---|---|
 | Automatización (Música / Spotify) | Leer y controlar la reproducción | La primera vez que hay un reproductor abierto |
-| Accesibilidad | Pegar solo al elegir del historial | Opcional: sin él se copia y pegas con `⌘V` |
 
-Ninguno es obligatorio: sin ellos la app funciona, solo pierdes esas piezas.
+No es obligatorio: sin él la app funciona, solo pierdes el reproductor.
 
 > Al estar firmada ad‑hoc, macOS le da una identidad nueva en cada recompilación
 > y puede volver a pedir los permisos. Es normal en apps locales sin certificado
@@ -91,8 +87,6 @@ Ninguno es obligatorio: sin ellos la app funciona, solo pierdes esas piezas.
 | `NotchShape.swift` | La forma con esquinas superiores invertidas |
 | `RootView.swift` | Isla cerrada (activities) y abierta (pestañas) |
 | `MediaManager.swift` | Now playing y control vía AppleScript, con sondeo adaptativo |
-| `ClipboardStore.swift` / `ClipboardView.swift` | Historial del portapapeles |
-| `HotKey.swift` | Atajo global (Carbon) |
 | `ShelfStore.swift` / `ShelfView.swift` | Repisa de archivos |
 | `SystemMonitors.swift` | Volumen (CoreAudio), brillo (DisplayServices), batería (IOKit), RAM |
 | `WidgetsView.swift` | Widgets |
@@ -112,4 +106,4 @@ Ninguno es obligatorio: sin ellos la app funciona, solo pierdes esas piezas.
 ISLAND_DEBUG=1 ISLAND_LOG=/tmp/island.log open -n build/Island\ Effect.app
 ```
 
-`ISLAND_TAB=music|clipboard|shelf|widgets` fuerza la pestaña inicial.
+`ISLAND_TAB=music|shelf|widgets` fuerza la pestaña inicial.

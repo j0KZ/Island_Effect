@@ -12,6 +12,8 @@ final class Prefs: ObservableObject {
     @Published var cornerRadius: Double { didSet { d.set(cornerRadius, forKey: K.cornerRadius) } }
     @Published var extraClosedWidth: Double { didSet { d.set(extraClosedWidth, forKey: K.extraClosedWidth) } }
     @Published var tintedBackground: Bool { didSet { d.set(tintedBackground, forKey: K.tintedBackground) } }
+    @Published var rimOpacity: Double { didSet { d.set(rimOpacity, forKey: K.rimOpacity) } }
+    @Published var rimGlow: Bool { didSet { d.set(rimGlow, forKey: K.rimGlow) } }
 
     // Comportamiento
     @Published var openOnHover: Bool { didSet { d.set(openOnHover, forKey: K.openOnHover) } }
@@ -35,21 +37,6 @@ final class Prefs: ObservableObject {
     @Published var enableMusic: Bool { didSet { d.set(enableMusic, forKey: K.enableMusic) } }
     @Published var enableShelf: Bool { didSet { d.set(enableShelf, forKey: K.enableShelf) } }
     @Published var enableWidgets: Bool { didSet { d.set(enableWidgets, forKey: K.enableWidgets) } }
-
-    // Portapapeles
-    @Published var enableClipboard: Bool { didSet { d.set(enableClipboard, forKey: K.enableClipboard) } }
-    @Published var clipboardHotKeyEnabled: Bool { didSet { d.set(clipboardHotKeyEnabled, forKey: K.clipboardHotKeyEnabled) } }
-    @Published var clipboardHotKeyCode: Int { didSet { d.set(clipboardHotKeyCode, forKey: K.clipboardHotKeyCode) } }
-    @Published var clipboardHotKeyMods: Int { didSet { d.set(clipboardHotKeyMods, forKey: K.clipboardHotKeyMods) } }
-    @Published var clipboardMaxItems: Double { didSet { d.set(clipboardMaxItems, forKey: K.clipboardMaxItems) } }
-    @Published var clipboardPersists: Bool { didSet { d.set(clipboardPersists, forKey: K.clipboardPersists) } }
-    @Published var clipboardKeepImages: Bool { didSet { d.set(clipboardKeepImages, forKey: K.clipboardKeepImages) } }
-    @Published var clipboardIgnoreConfidential: Bool { didSet { d.set(clipboardIgnoreConfidential, forKey: K.clipboardIgnoreConfidential) } }
-    @Published var clipboardAutoPaste: Bool { didSet { d.set(clipboardAutoPaste, forKey: K.clipboardAutoPaste) } }
-
-    var clipboardHotKey: HotKeySpec {
-        HotKeySpec(keyCode: clipboardHotKeyCode, modifiers: clipboardHotKeyMods)
-    }
     @Published var shelfPersists: Bool { didSet { d.set(shelfPersists, forKey: K.shelfPersists) } }
     @Published var use24hClock: Bool { didSet { d.set(use24hClock, forKey: K.use24hClock) } }
 
@@ -61,6 +48,8 @@ final class Prefs: ObservableObject {
         static let cornerRadius = "cornerRadius"
         static let extraClosedWidth = "extraClosedWidth"
         static let tintedBackground = "tintedBackground"
+        static let rimOpacity = "rimOpacity"
+        static let rimGlow = "rimGlow"
         static let openOnHover = "openOnHover"
         static let hoverOpenDelay = "hoverOpenDelay"
         static let hoverCloseDelay = "hoverCloseDelay"
@@ -76,15 +65,6 @@ final class Prefs: ObservableObject {
         static let enableMusic = "enableMusic"
         static let enableShelf = "enableShelf"
         static let enableWidgets = "enableWidgets"
-        static let enableClipboard = "enableClipboard"
-        static let clipboardHotKeyEnabled = "clipboardHotKeyEnabled"
-        static let clipboardHotKeyCode = "clipboardHotKeyCode"
-        static let clipboardHotKeyMods = "clipboardHotKeyMods"
-        static let clipboardMaxItems = "clipboardMaxItems"
-        static let clipboardPersists = "clipboardPersists"
-        static let clipboardKeepImages = "clipboardKeepImages"
-        static let clipboardIgnoreConfidential = "clipboardIgnoreConfidential"
-        static let clipboardAutoPaste = "clipboardAutoPaste"
         static let shelfPersists = "shelfPersists"
         static let use24hClock = "use24hClock"
         static let launchAtLogin = "launchAtLogin"
@@ -97,6 +77,8 @@ final class Prefs: ObservableObject {
             K.cornerRadius: 22.0,
             K.extraClosedWidth: 0.0,
             K.tintedBackground: true,
+            K.rimOpacity: 0.42,
+            K.rimGlow: true,
             K.openOnHover: true,
             K.hoverOpenDelay: 0.18,
             K.hoverCloseDelay: 0.25,
@@ -112,15 +94,6 @@ final class Prefs: ObservableObject {
             K.enableMusic: true,
             K.enableShelf: true,
             K.enableWidgets: true,
-            K.enableClipboard: true,
-            K.clipboardHotKeyEnabled: true,
-            K.clipboardHotKeyCode: HotKeySpec.defaultClipboard.keyCode,
-            K.clipboardHotKeyMods: HotKeySpec.defaultClipboard.modifiers,
-            K.clipboardMaxItems: 60.0,
-            K.clipboardPersists: true,
-            K.clipboardKeepImages: true,
-            K.clipboardIgnoreConfidential: true,
-            K.clipboardAutoPaste: true,
             K.shelfPersists: true,
             K.use24hClock: true,
             K.launchAtLogin: false
@@ -130,6 +103,8 @@ final class Prefs: ObservableObject {
         cornerRadius = d.double(forKey: K.cornerRadius)
         extraClosedWidth = d.double(forKey: K.extraClosedWidth)
         tintedBackground = d.bool(forKey: K.tintedBackground)
+        rimOpacity = d.double(forKey: K.rimOpacity)
+        rimGlow = d.bool(forKey: K.rimGlow)
         openOnHover = d.bool(forKey: K.openOnHover)
         hoverOpenDelay = d.double(forKey: K.hoverOpenDelay)
         hoverCloseDelay = d.double(forKey: K.hoverCloseDelay)
@@ -145,15 +120,6 @@ final class Prefs: ObservableObject {
         enableMusic = d.bool(forKey: K.enableMusic)
         enableShelf = d.bool(forKey: K.enableShelf)
         enableWidgets = d.bool(forKey: K.enableWidgets)
-        enableClipboard = d.bool(forKey: K.enableClipboard)
-        clipboardHotKeyEnabled = d.bool(forKey: K.clipboardHotKeyEnabled)
-        clipboardHotKeyCode = d.integer(forKey: K.clipboardHotKeyCode)
-        clipboardHotKeyMods = d.integer(forKey: K.clipboardHotKeyMods)
-        clipboardMaxItems = d.double(forKey: K.clipboardMaxItems)
-        clipboardPersists = d.bool(forKey: K.clipboardPersists)
-        clipboardKeepImages = d.bool(forKey: K.clipboardKeepImages)
-        clipboardIgnoreConfidential = d.bool(forKey: K.clipboardIgnoreConfidential)
-        clipboardAutoPaste = d.bool(forKey: K.clipboardAutoPaste)
         shelfPersists = d.bool(forKey: K.shelfPersists)
         use24hClock = d.bool(forKey: K.use24hClock)
         launchAtLogin = d.bool(forKey: K.launchAtLogin)
@@ -161,13 +127,10 @@ final class Prefs: ObservableObject {
 
     func resetToDefaults() {
         for key in [K.expandedWidth, K.expandedHeight, K.cornerRadius, K.extraClosedWidth,
-                    K.tintedBackground, K.openOnHover, K.hoverOpenDelay, K.hoverCloseDelay,
+                    K.tintedBackground, K.rimOpacity, K.rimGlow, K.openOnHover, K.hoverOpenDelay, K.hoverCloseDelay,
                     K.followMouseScreen, K.haptics, K.scrollVolume, K.scrollTrack,
                     K.liveMusic, K.liveVolume, K.liveBrightness, K.liveBattery,
                     K.activityDuration, K.enableMusic, K.enableShelf, K.enableWidgets,
-                    K.enableClipboard, K.clipboardHotKeyEnabled, K.clipboardHotKeyCode,
-                    K.clipboardHotKeyMods, K.clipboardMaxItems, K.clipboardPersists,
-                    K.clipboardKeepImages, K.clipboardIgnoreConfidential, K.clipboardAutoPaste,
                     K.shelfPersists, K.use24hClock] {
             d.removeObject(forKey: key)
         }
@@ -176,6 +139,8 @@ final class Prefs: ObservableObject {
         cornerRadius = d.double(forKey: K.cornerRadius)
         extraClosedWidth = d.double(forKey: K.extraClosedWidth)
         tintedBackground = d.bool(forKey: K.tintedBackground)
+        rimOpacity = d.double(forKey: K.rimOpacity)
+        rimGlow = d.bool(forKey: K.rimGlow)
         openOnHover = d.bool(forKey: K.openOnHover)
         hoverOpenDelay = d.double(forKey: K.hoverOpenDelay)
         hoverCloseDelay = d.double(forKey: K.hoverCloseDelay)
@@ -191,15 +156,6 @@ final class Prefs: ObservableObject {
         enableMusic = d.bool(forKey: K.enableMusic)
         enableShelf = d.bool(forKey: K.enableShelf)
         enableWidgets = d.bool(forKey: K.enableWidgets)
-        enableClipboard = d.bool(forKey: K.enableClipboard)
-        clipboardHotKeyEnabled = d.bool(forKey: K.clipboardHotKeyEnabled)
-        clipboardHotKeyCode = d.integer(forKey: K.clipboardHotKeyCode)
-        clipboardHotKeyMods = d.integer(forKey: K.clipboardHotKeyMods)
-        clipboardMaxItems = d.double(forKey: K.clipboardMaxItems)
-        clipboardPersists = d.bool(forKey: K.clipboardPersists)
-        clipboardKeepImages = d.bool(forKey: K.clipboardKeepImages)
-        clipboardIgnoreConfidential = d.bool(forKey: K.clipboardIgnoreConfidential)
-        clipboardAutoPaste = d.bool(forKey: K.clipboardAutoPaste)
         shelfPersists = d.bool(forKey: K.shelfPersists)
         use24hClock = d.bool(forKey: K.use24hClock)
     }
