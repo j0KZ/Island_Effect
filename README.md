@@ -21,8 +21,11 @@ pasar el mouse.
   (`ignoresMouseEvents`): todo lo demás llega a la barra de menús como si la
   isla no existiera.
 - **Liquid Glass del sistema** (`glassEffect`, macOS 26) teñido con el color
-  dominante de la carátula que esté sonando; en macOS 14–15 cae a
-  `NSVisualEffectView`.
+  dominante de la carátula; en macOS 14–15 cae a `NSVisualEffectView`.
+- Además, el panel toma un **lavado de color de la propia portada**: la carátula
+  reducida a 16×16 y ampliada de vuelta, que la interpolación convierte en un
+  degradado con los colores del disco. Es el truco del fondo de Música de Apple
+  y cuesta lo mismo que dibujar una imagen de 256 píxeles.
 - Contorno especular alrededor de todo el borde, con halo, más intenso en el
   canto inferior. Sirve para ubicar la isla cuando la barra es toda negra, y se
   regula de 0 a 100 % en Preferencias. Se dibuja un poco por fuera del recorte

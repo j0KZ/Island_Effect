@@ -56,6 +56,10 @@ final class MediaManager: ObservableObject {
     @Published private(set) var artwork: NSImage?
     /// Color dominante de la carátula, para teñir el vidrio de la isla.
     @Published private(set) var artworkTint: Color?
+    /// La carátula reducida a un puñado de píxeles. Ampliada de vuelta da el
+    /// lavado de color de la portada, como el fondo de Música de Apple, y
+    /// cuesta prácticamente nada de dibujar.
+    @Published private(set) var artworkBackdrop: NSImage?
     /// true si macOS negó el permiso de Automatización para el reproductor.
     @Published private(set) var automationDenied = false
     /// Se dispara cuando cambia la canción o el estado play/pausa.
@@ -245,6 +249,7 @@ final class MediaManager: ObservableObject {
         if !sameTrack {
             artwork = nil
             artworkTint = nil
+            artworkBackdrop = nil
             fetchArtwork(for: np)
         }
         let key = np.app.rawValue + "|" + np.trackKey
@@ -350,8 +355,7 @@ final class MediaManager: ObservableObject {
                 let tint = Self.dominantColor(of: image)
                 DispatchQueue.main.async {
                     guard self.lastArtworkKey == key else { return }
-                    self.artwork = image
-                    self.artworkTint = tint
+                    self.setArtwork(image, tint: tint)
                 }
             }
             artworkTask?.resume()
@@ -388,8 +392,7 @@ final class MediaManager: ObservableObject {
                 let tint = Self.dominantColor(of: image)
                 DispatchQueue.main.async {
                     guard self.lastArtworkKey == key else { return }
-                    self.artwork = image
-                    self.artworkTint = tint
+                    self.setArtwork(image, tint: tint)
                 }
             }
         case .none:
@@ -434,6 +437,26 @@ final class MediaManager: ObservableObject {
     func openAutomationSettings() {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    /// El reescalado usa AppKit, así que va en el hilo principal (son 16x16).
+    private func setArtwork(_ image: NSImage, tint: Color?) {
+        artwork = image
+        artworkTint = tint
+        artworkBackdrop = Self.backdrop(from: image)
+    }
+
+    /// Carátula reducida a 16x16: al ampliarla, la interpolación la convierte
+    /// en un degradado suave con los colores de la portada.
+    private static func backdrop(from image: NSImage) -> NSImage? {
+        let size = NSSize(width: 16, height: 16)
+        let small = NSImage(size: size)
+        small.lockFocus()
+        NSGraphicsContext.current?.imageInterpolation = .high
+        image.draw(in: NSRect(origin: .zero, size: size),
+                   from: .zero, operation: .copy, fraction: 1)
+        small.unlockFocus()
+        return small
     }
 
     /// Color medio de la carátula, saturado y con el brillo acotado para que

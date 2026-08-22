@@ -86,6 +86,22 @@ struct RootView: View {
                 shape.fill(Color.black)
             }
 
+            // Lavado de color con la portada: el panel se mimetiza con lo que
+            // suena en vez de quedar gris.
+            if useGlass, let backdrop = media.artworkBackdrop {
+                // Con marco explícito: un `aspectRatio(.fill)` suelto dentro del
+                // ZStack lo hace crecer sin límite y se lleva por delante todo
+                // el render de la isla.
+                Image(nsImage: backdrop)
+                    .resizable()
+                    .interpolation(.high)
+                    .frame(width: size.width, height: size.height)
+                    .saturation(1.5)
+                    .opacity(0.6)
+                    .clipShape(shape)
+                shape.fill(Color.black.opacity(0.32))
+            }
+
             shape.fill(
                 LinearGradient(colors: [Color.white.opacity(0.07), Color.white.opacity(0)],
                                startPoint: .top, endPoint: .bottom)
