@@ -39,10 +39,10 @@ struct ShelfView: View {
             Image(systemName: "tray.and.arrow.down")
                 .font(.system(size: 22, weight: .light))
                 .foregroundStyle(.white.opacity(0.4))
-            Text("Arrastra archivos al notch")
+            Text("Drag files onto the notch")
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.white.opacity(0.7))
-            Text("Quedan acá listos para arrastrarlos a donde quieras")
+            Text("They stay here, ready to drag wherever you want")
                 .font(.system(size: 11))
                 .foregroundStyle(.white.opacity(0.4))
         }
@@ -56,13 +56,13 @@ struct ShelfView: View {
 
     private var footer: some View {
         HStack(spacing: 10) {
-            Text("\(shelf.items.count) \(shelf.items.count == 1 ? "archivo" : "archivos")")
+            Text(shelf.items.count == 1 ? "\(shelf.items.count) file" : "\(shelf.items.count) files")
                 .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(.white.opacity(0.4))
             Spacer()
-            Button("Copiar todo") { shelf.copyFiles() }
+            Button("Copy all") { shelf.copyFiles() }
                 .buttonStyle(PillButtonStyle())
-            Button("Vaciar") { withAnimation(.islandFast) { shelf.clear() } }
+            Button("Empty") { withAnimation(.islandFast) { shelf.clear() } }
                 .buttonStyle(PillButtonStyle(destructive: true))
         }
     }
@@ -111,11 +111,11 @@ struct ShelfTile: View {
         }
         .onTapGesture(count: 2) { shelf.open(item) }
         .contextMenu {
-            Button("Abrir") { shelf.open(item) }
-            Button("Mostrar en Finder") { shelf.reveal(item) }
-            Button("Copiar ruta") { shelf.copyPath(item) }
+            Button("Open") { shelf.open(item) }
+            Button("Show in Finder") { shelf.reveal(item) }
+            Button("Copy path") { shelf.copyPath(item) }
             Divider()
-            Button("Quitar de la repisa", role: .destructive) { shelf.remove(item) }
+            Button("Remove from shelf", role: .destructive) { shelf.remove(item) }
         }
         .help("\(item.name) · \(item.sizeLabel)")
         .animation(.easeOut(duration: 0.12), value: hovered)

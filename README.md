@@ -78,17 +78,35 @@ la lanza. Sin el flag solo compila en `build/`; con `--run` la ejecuta desde ah�
 
 Requiere macOS 14 o superior y las Command Line Tools de Xcode (`swift`).
 
-## Permisos que pide macOS
+## Permisos
+
+Uno solo:
 
 | Permiso | Para qué | Cuándo |
 |---|---|---|
 | Automatización (Música / Spotify) | Leer y controlar la reproducción | La primera vez que hay un reproductor abierto |
 
-No es obligatorio: sin él la app funciona, solo pierdes el reproductor.
+No es obligatorio: sin él la app funciona, solo pierdes el reproductor, y la
+pestaña de Música te ofrece el atajo a Ajustes para concederlo. Si solo usas
+uno de los dos reproductores, apaga el otro en Módulos y macOS no te preguntará
+por él.
+
+**No pide** accesibilidad, grabación de pantalla, cámara, micrófono, ubicación,
+contactos ni calendario, y no usa ninguna API que las requiera. Tampoco va en
+sandbox, así que la repisa lee los archivos que le sueltas sin más trámite
+(macOS sí puede preguntar por Escritorio, Documentos o Descargas la primera vez
+que se toca un archivo de esas carpetas, como a cualquier app).
 
 > Al estar firmada ad‑hoc, macOS le da una identidad nueva en cada recompilación
 > y puede volver a pedir los permisos. Es normal en apps locales sin certificado
 > de desarrollador.
+
+## Idiomas
+
+Inglés y español. La app sigue el idioma del sistema y cae al inglés si no es
+ninguno de los dos. Las cadenas viven en `Resources/en.lproj` y
+`Resources/es.lproj`; las claves son el propio texto en inglés, así que añadir
+un idioma es copiar una carpeta `.lproj` y traducir.
 
 ## Cómo está hecho
 
@@ -172,3 +190,13 @@ ISLAND_DEBUG=1 ISLAND_LOG=/tmp/island.log open -n build/Island\ Effect.app
 
 `ISLAND_TAB=music|shelf` fuerza la pestaña inicial, `ISLAND_SETTINGS=1` abre
 Preferencias al arrancar e `ISLAND_DEMO=1` dispara una live activity de prueba.
+
+## Licencia y autoría
+
+Hecho por **j0KZ** — [github.com/j0KZ](https://github.com/j0KZ).
+Publicado bajo licencia MIT (ver [LICENSE](LICENSE)): úsalo, modifícalo y
+distribúyelo, conservando el aviso de copyright.
+
+El crédito aparece también dentro de la app, en Preferencias › Acerca de, y en
+`NSHumanReadableCopyright` del bundle (lo que Finder muestra en Obtener
+información).

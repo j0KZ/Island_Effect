@@ -8,10 +8,10 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             general.tabItem { Label("General", systemImage: "gearshape") }
-            appearance.tabItem { Label("Apariencia", systemImage: "paintbrush") }
-            modules.tabItem { Label("Módulos", systemImage: "square.grid.2x2") }
-            gestures.tabItem { Label("Gestos", systemImage: "hand.draw") }
-            about.tabItem { Label("Acerca de", systemImage: "info.circle") }
+            appearance.tabItem { Label("Appearance", systemImage: "paintbrush") }
+            modules.tabItem { Label("Modules", systemImage: "square.grid.2x2") }
+            gestures.tabItem { Label("Gestures", systemImage: "hand.draw") }
+            about.tabItem { Label("About", systemImage: "info.circle") }
         }
         .frame(width: 460, height: 380)
     }
@@ -20,25 +20,25 @@ struct SettingsView: View {
 
     private var general: some View {
         Form {
-            Toggle("Abrir al pasar el mouse", isOn: $prefs.openOnHover)
+            Toggle("Open on hover", isOn: $prefs.openOnHover)
             HStack {
-                Text("Retardo de apertura")
+                Text("Open delay")
                 Slider(value: $prefs.hoverOpenDelay, in: 0...0.8)
                 Text(String(format: "%.2fs", prefs.hoverOpenDelay))
                     .monospacedDigit().frame(width: 46, alignment: .trailing)
             }
-            Toggle("Seguir la pantalla donde está el mouse", isOn: $prefs.followMouseScreen)
-            Toggle("Respuesta háptica del trackpad", isOn: $prefs.haptics)
+            Toggle("Follow the screen the pointer is on", isOn: $prefs.followMouseScreen)
+            Toggle("Trackpad haptics", isOn: $prefs.haptics)
             Divider()
-            Toggle("Ícono en la barra de menús", isOn: $prefs.showMenuBarIcon)
-            Toggle("Abrir al iniciar sesión", isOn: $prefs.launchAtLogin)
+            Toggle("Menu bar icon", isOn: $prefs.showMenuBarIcon)
+            Toggle("Open at login", isOn: $prefs.launchAtLogin)
                 .onChange(of: prefs.launchAtLogin) { _, enabled in
                     LoginItem.set(enabled: enabled)
                 }
             HStack {
-                Button("Salir de Island Effect") { NSApp.terminate(nil) }
+                Button("Quit Island Effect") { NSApp.terminate(nil) }
                 Spacer()
-                Button("Restaurar valores por omisión") { prefs.resetToDefaults() }
+                Button("Restore defaults") { prefs.resetToDefaults() }
             }
         }
         .formStyle(.grouped)
@@ -48,12 +48,12 @@ struct SettingsView: View {
 
     private var appearance: some View {
         Form {
-            slider("Ancho abierto", value: $prefs.expandedWidth, range: 420...900, step: 10)
-            slider("Alto abierto", value: $prefs.expandedHeight, range: 96...340, step: 2)
-            slider("Radio de esquinas", value: $prefs.cornerRadius, range: 8...40, step: 1)
-            slider("Ancho extra en reposo", value: $prefs.extraClosedWidth, range: 0...260, step: 2)
+            slider("Open width", value: $prefs.expandedWidth, range: 420...900, step: 10)
+            slider("Open height", value: $prefs.expandedHeight, range: 96...340, step: 2)
+            slider("Corner radius", value: $prefs.cornerRadius, range: 8...40, step: 1)
+            slider("Extra width at rest", value: $prefs.extraClosedWidth, range: 0...260, step: 2)
             HStack {
-                Text("Contorno")
+                Text("Outline")
                 Slider(value: $prefs.rimOpacity, in: 0...1, step: 0.02)
                 Text("\(Int(prefs.rimOpacity * 100)) %")
                     .monospacedDigit().frame(width: 46, alignment: .trailing)
@@ -76,30 +76,30 @@ struct SettingsView: View {
 
     private var modules: some View {
         Form {
-            Section("Reproductor") {
-                Toggle("Música", isOn: $prefs.enableMusic)
-                Toggle("Leer Spotify", isOn: $prefs.useSpotify)
+            Section("Player") {
+                Toggle("Music", isOn: $prefs.enableMusic)
+                Toggle("Read Spotify", isOn: $prefs.useSpotify)
                     .disabled(!prefs.enableMusic)
-                Toggle("Leer Apple Music", isOn: $prefs.useAppleMusic)
+                Toggle("Read Apple Music", isOn: $prefs.useAppleMusic)
                     .disabled(!prefs.enableMusic)
-                Text("Apaga el que no uses: cada reproductor activo es una consulta menos y un permiso de automatización menos.")
+                Text("Turn off the one you don't use: each active player means one less query and one less automation prompt.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            Section("Repisa") {
-                Toggle("Repisa de archivos", isOn: $prefs.enableShelf)
-                Text("Un bolsillo: sueltas archivos sobre el notch y los vuelves a arrastrar a donde los necesites.")
+            Section("Shelf") {
+                Toggle("File shelf", isOn: $prefs.enableShelf)
+                Text("A pocket: drop files onto the notch and drag them back out wherever you need them.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            Section("Avisos bajo el notch") {
-                Text("Volumen y brillo no aparecen: macOS ya muestra los suyos.")
+            Section("Notices under the notch") {
+                Text("Volume and brightness are not shown: macOS already shows its own.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Toggle("Cambio de canción", isOn: $prefs.liveMusic)
-                Toggle("Carga de batería", isOn: $prefs.liveBattery)
+                Toggle("Track change", isOn: $prefs.liveMusic)
+                Toggle("Battery charging", isOn: $prefs.liveBattery)
                 HStack {
-                    Text("Duración")
+                    Text("Duration")
                     Slider(value: $prefs.activityDuration, in: 1...6, step: 0.2)
                     Text(String(format: "%.1fs", prefs.activityDuration))
                         .monospacedDigit().frame(width: 46, alignment: .trailing)
@@ -113,11 +113,11 @@ struct SettingsView: View {
 
     private var gestures: some View {
         Form {
-            Toggle("Scroll vertical sobre el notch = volumen", isOn: $prefs.scrollVolume)
-            Toggle("Scroll horizontal = canción anterior/siguiente", isOn: $prefs.scrollTrack)
+            Toggle("Vertical scroll over the notch = volume", isOn: $prefs.scrollVolume)
+            Toggle("Horizontal scroll = previous/next track", isOn: $prefs.scrollTrack)
             Section {
-                Label("Clic en el notch: la deja abierta; otro clic la cierra", systemImage: "cursorarrow.click")
-                Label("Arrastrar archivos al notch: van a la repisa", systemImage: "tray.and.arrow.down")
+                Label("Click the notch: it stays open; click again to close", systemImage: "cursorarrow.click")
+                Label("Drag files onto the notch: they go to the shelf", systemImage: "tray.and.arrow.down")
             }
             .foregroundStyle(.secondary)
         }
@@ -133,13 +133,24 @@ struct SettingsView: View {
                 .foregroundStyle(.tint)
             Text("Island Effect")
                 .font(.title2.weight(.semibold))
-            Text("Versión \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")")
+            Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")")
                 .foregroundStyle(.secondary)
-            Text("Convierte el notch del Mac en una isla interactiva: reproductor, repisa de archivos y avisos discretos.")
+            Text("Turns the Mac notch into an interactive island: player, file shelf and discreet notices.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 40)
             Spacer()
+            VStack(spacing: 3) {
+                Text("Made by j0KZ")
+                    .font(.callout.weight(.medium))
+                Link("github.com/j0KZ/Island_Effect",
+                     destination: URL(string: "https://github.com/j0KZ/Island_Effect")!)
+                    .font(.caption)
+                Text("MIT License · © 2026 j0KZ")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.bottom, 18)
         }
         .padding(.top, 26)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -166,7 +177,7 @@ final class SettingsWindowController: NSWindowController {
     convenience init() {
         let hosting = NSHostingController(rootView: SettingsView())
         let window = NSWindow(contentViewController: hosting)
-        window.title = "Preferencias de Island Effect"
+        window.title = String(localized: "Island Effect Preferences")
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.isReleasedWhenClosed = false
         // Fijamos el tamaño antes de centrar: si no, centra con un marco que

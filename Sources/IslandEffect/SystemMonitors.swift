@@ -109,15 +109,27 @@ final class BatteryMonitor: ObservableObject {
     /// (nuevo estado, cambió el estado de conexión a corriente)
     var onChange: ((BatteryState, Bool) -> Void)?
 
-    private var timer: Timer?
+    private var runLoopSource: CFRunLoopSource?
 
     private init() { state = read() }
 
+    /// IOKit avisa en cuanto cambia la fuente de energía. Antes esto se
+    /// sondeaba cada 5 s, así que el aviso de "cargando" llegaba hasta cinco
+    /// segundos después del sonido de conexión.
     func start() {
-        timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+        let context = Unmanaged.passUnretained(self).toOpaque()
+        guard let source = IOPSNotificationCreateRunLoopSource({ raw in
+            guard let raw else { return }
+            let monitor = Unmanaged<BatteryMonitor>.fromOpaque(raw).takeUnretainedValue()
+            DispatchQueue.main.async { monitor.tick() }
+        }, context)?.takeRetainedValue() else { return }
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .defaultMode)
+        runLoopSource = source
+
+        NotificationCenter.default.addObserver(forName: NSWorkspace.didWakeNotification,
+                                               object: nil, queue: .main) { [weak self] _ in
             self?.tick()
         }
-        timer?.tolerance = 2
     }
 
     private func tick() {

@@ -22,6 +22,12 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/IslandEffect"
 
+# Localizaciones
+for lproj in Resources/*.lproj; do
+    [ -d "$lproj" ] || continue
+    cp -R "$lproj" "$APP/Contents/Resources/"
+done
+
 # Icono
 ICONSET="$BUILD_DIR/AppIcon.iconset"
 rm -rf "$ICONSET"; mkdir -p "$ICONSET"
@@ -46,7 +52,12 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>NSHighResolutionCapable</key><true/>
     <key>NSSupportsAutomaticTermination</key><false/>
     <key>NSAppleEventsUsageDescription</key>
-    <string>Island Effect consulta Música y Spotify para mostrar y controlar lo que estás escuchando.</string>
+    <string>Island Effect asks Music and Spotify what is playing, so it can show and control it.</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>© 2026 j0KZ · MIT License</string>
+    <key>CFBundleDevelopmentRegion</key><string>en</string>
+    <key>CFBundleLocalizations</key>
+    <array><string>en</string><string>es</string></array>
 </dict>
 </plist>
 PLIST

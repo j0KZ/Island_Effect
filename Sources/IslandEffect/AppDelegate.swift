@@ -69,20 +69,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.button?.image?.isTemplate = true
 
         let menu = NSMenu()
-        menu.addItem(withTitle: "Abrir la isla", action: #selector(toggleIsland), keyEquivalent: "").target = self
+        menu.addItem(withTitle: String(localized: "Open the island"), action: #selector(toggleIsland), keyEquivalent: "").target = self
         menu.addItem(.separator())
-        let music = NSMenuItem(title: "Música", action: #selector(openMusic), keyEquivalent: "")
+        let music = NSMenuItem(title: String(localized: "Music"), action: #selector(openMusic), keyEquivalent: "")
         music.target = self
         menu.addItem(music)
-        let shelf = NSMenuItem(title: "Repisa", action: #selector(openShelf), keyEquivalent: "")
+        let shelf = NSMenuItem(title: String(localized: "Shelf"), action: #selector(openShelf), keyEquivalent: "")
         shelf.target = self
         menu.addItem(shelf)
         menu.addItem(.separator())
-        let prefs = NSMenuItem(title: "Preferencias…", action: #selector(showSettingsAction), keyEquivalent: ",")
+        let prefs = NSMenuItem(title: String(localized: "Preferences…"), action: #selector(showSettingsAction), keyEquivalent: ",")
         prefs.target = self
         menu.addItem(prefs)
         menu.addItem(.separator())
-        let quit = NSMenuItem(title: "Salir de Island Effect", action: #selector(quit), keyEquivalent: "q")
+        let quit = NSMenuItem(title: String(localized: "Quit Island Effect"), action: #selector(quit), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
         item.menu = menu

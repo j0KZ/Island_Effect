@@ -51,7 +51,7 @@ struct MusicView: View {
                         .shadow(color: .black.opacity(0.55), radius: 12, y: 6)
                 }
                 .buttonStyle(.plain)
-                .help("Abrir \(info.app.displayName)")
+                .help("Open \(info.app.displayName)")
 
                 VStack(alignment: .leading, spacing: 0) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -161,16 +161,16 @@ struct MusicView: View {
             Image(systemName: "lock.shield")
                 .font(.system(size: 22, weight: .light))
                 .foregroundStyle(.orange)
-            Text("Falta el permiso de Automatización")
+            Text("Automation permission missing")
                 .font(.system(size: 13, weight: .medium))
-            Text("Ajustes del Sistema › Privacidad y seguridad › Automatización\nActiva Música y Spotify para Island Effect.")
+            Text("System Settings › Privacy & Security › Automation\nEnable Music and Spotify for Island Effect.")
                 .font(.system(size: 11))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.white.opacity(0.5))
             HStack(spacing: 8) {
-                Button("Abrir Ajustes") { media.openAutomationSettings() }
+                Button("Open Settings") { media.openAutomationSettings() }
                     .buttonStyle(PillButtonStyle())
-                Button("Reintentar") { media.retryAfterPermissionChange() }
+                Button("Retry") { media.retryAfterPermissionChange() }
                     .buttonStyle(PillButtonStyle())
             }
         }
@@ -181,14 +181,14 @@ struct MusicView: View {
         VStack(spacing: 8) {
             EqualizerBars(active: false, tint: .white.opacity(0.35))
                 .frame(width: 34, height: 20)
-            Text("Nada sonando")
+            Text("Nothing playing")
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.white.opacity(0.7))
-            Text("Abre Música o Spotify y aparecerá acá")
+            Text("Open Music or Spotify and it will show up here")
                 .font(.system(size: 11))
                 .foregroundStyle(.white.opacity(0.4))
             HStack(spacing: 8) {
-                launchButton(name: "Música", bundle: "com.apple.Music")
+                launchButton(name: "Music", bundle: "com.apple.Music")
                 launchButton(name: "Spotify", bundle: "com.spotify.client")
             }
             .padding(.top, 2)

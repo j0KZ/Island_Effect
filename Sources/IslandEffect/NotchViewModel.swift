@@ -13,8 +13,8 @@ enum NotchTab: String, CaseIterable, Identifiable {
     }
     var title: String {
         switch self {
-        case .music: return "Música"
-        case .shelf: return "Repisa"
+        case .music: return String(localized: "Music")
+        case .shelf: return String(localized: "Shelf")
         }
     }
 }
@@ -83,7 +83,7 @@ final class NotchViewModel: ObservableObject {
             // 20 de márgenes + 24 carátula + 18 ecualizador + 3 huecos de 8 + holgura
             return CGSize(width: clampWidth(98 + text), height: 40)
         case .battery(let percent, let plugged, let charging):
-            let label = charging ? "Cargando" : (plugged ? "Conectado" : "Con batería")
+            let label = charging ? "Charging" : (plugged ? "Plugged in" : "On battery")
             let text = textWidth(label, size: 11, weight: .medium)
                 + textWidth(" \(percent) %", size: 11, weight: .semibold)
             return CGSize(width: clampWidth(86 + text), height: 30)

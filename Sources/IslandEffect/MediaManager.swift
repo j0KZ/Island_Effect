@@ -446,10 +446,12 @@ final class MediaManager: ObservableObject {
         artworkBackdrop = Self.backdrop(from: image)
     }
 
-    /// Carátula reducida a 16x16: al ampliarla, la interpolación la convierte
-    /// en un degradado suave con los colores de la portada.
+    /// Carátula reducida a un puñado de píxeles: al ampliarla, la interpolación
+    /// la convierte en un degradado suave con los colores de la portada. A 6x6
+    /// el resultado es un lavado limpio; con más resolución se ven los borrones
+    /// de la foto.
     private static func backdrop(from image: NSImage) -> NSImage? {
-        let size = NSSize(width: 16, height: 16)
+        let size = NSSize(width: 6, height: 6)
         let small = NSImage(size: size)
         small.lockFocus()
         NSGraphicsContext.current?.imageInterpolation = .high

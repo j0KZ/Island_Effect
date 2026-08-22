@@ -96,8 +96,8 @@ struct RootView: View {
                     .resizable()
                     .interpolation(.high)
                     .frame(width: size.width, height: size.height)
-                    .saturation(1.5)
-                    .opacity(0.6)
+                    .saturation(1.9)
+                    .opacity(0.68)
                     .clipShape(shape)
                 shape.fill(Color.black.opacity(0.32))
             }
@@ -273,7 +273,7 @@ struct ActivityBar: View {
                     .lineLimit(1)
             }
         case .battery(let percent, let plugged, let charging):
-            Text(charging ? "Cargando" : (plugged ? "Conectado" : "Con batería"))
+            Text(charging ? "Charging" : (plugged ? "Plugged in" : "On battery"))
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.white.opacity(0.75))
                 .lineLimit(1)
@@ -360,7 +360,7 @@ struct OpenView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.white.opacity(0.45))
-                .help("Preferencias")
+                .help("Preferences")
             }
             .padding(.trailing, 12)
         }
