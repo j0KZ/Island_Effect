@@ -29,7 +29,10 @@ struct RootView: View {
         .frame(width: size.width, height: size.height)
         .scaleEffect(dropTargeted && !vm.isOpen ? 1.04 : 1, anchor: .top)
         .animation(.island, value: vm.isOpen)
-        .animation(.island, value: vm.activity)
+        // Los avisos entran con un resorte más corto: cada fotograma de esa
+        // transición vuelve a renderizar el vidrio, y es lo más caro que hace
+        // la app. Menos rebote, menos fotogramas.
+        .animation(.islandFast, value: vm.activity)
         .animation(.islandFast, value: vm.isHovering)
         .animation(.islandFast, value: dropTargeted)
         .contentShape(shape)
@@ -234,10 +237,6 @@ struct ActivityBar: View {
         switch activity {
         case .music:
             ArtworkView(size: 24, corner: 6)
-        case .volume(_, let muted):
-            symbol(muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-        case .brightness:
-            symbol("sun.max.fill")
         case .battery(_, let plugged, let charging):
             symbol(charging ? "battery.100.bolt" : (plugged ? "powerplug.fill" : "battery.50"),
                    tint: charging ? .green : .white)
@@ -269,8 +268,6 @@ struct ActivityBar: View {
                 .foregroundStyle(.white.opacity(0.75))
                 .lineLimit(1)
                 .accessibilityValue("\(percent) %")
-        case .volume, .brightness:
-            EmptyView()
         }
     }
 
@@ -280,10 +277,6 @@ struct ActivityBar: View {
         case .music(_, _, let playing):
             EqualizerBars(active: playing)
                 .frame(width: 18, height: 12)
-        case .volume(let value, let muted):
-            MiniBar(value: muted ? 0 : Double(value))
-        case .brightness(let value):
-            MiniBar(value: Double(value))
         case .battery(let percent, _, _):
             Text("\(percent) %")
                 .font(.system(size: 11, weight: .semibold, design: .rounded).monospacedDigit())

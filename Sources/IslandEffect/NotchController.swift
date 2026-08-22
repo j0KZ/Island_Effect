@@ -157,14 +157,6 @@ final class NotchController {
             .store(in: &cancellables)
 
         // Live activities
-        VolumeMonitor.shared.onChange = { [weak self] value, muted in
-            guard let self, self.prefs.liveVolume else { return }
-            self.viewModel.show(.volume(value, muted: muted), duration: 1.6)
-        }
-        BrightnessMonitor.shared.onChange = { [weak self] value in
-            guard let self, self.prefs.liveBrightness else { return }
-            self.viewModel.show(.brightness(value), duration: 1.6)
-        }
         BatteryMonitor.shared.onChange = { [weak self] state, plugChanged in
             guard let self, self.prefs.liveBattery, plugChanged else { return }
             self.viewModel.show(.battery(percent: state.percent, plugged: state.plugged, charging: state.charging),
@@ -311,9 +303,8 @@ final class NotchController {
         if prefs.scrollVolume, abs(dy) > abs(dx), abs(dy) > 0.05 {
             let step = Float(dy) * (event.hasPreciseScrollingDeltas ? 0.004 : 0.03)
             let target = VolumeMonitor.shared.readVolume() + step
+            // Sin aviso propio: macOS ya muestra el suyo al cambiar el volumen.
             VolumeMonitor.shared.setVolume(target)
-            viewModel.show(.volume(VolumeMonitor.shared.readVolume(),
-                                   muted: VolumeMonitor.shared.readMuted()), duration: 1.4)
             return
         }
 

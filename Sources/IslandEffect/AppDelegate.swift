@@ -16,7 +16,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
 
         VolumeMonitor.shared.start()
-        BrightnessMonitor.shared.start()
         BatteryMonitor.shared.start()
         MediaManager.shared.start()
 

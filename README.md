@@ -32,10 +32,12 @@ pasar el mouse.
   menús, con la misma funcionalidad.
 - Multi‑monitor: sigue la pantalla donde está el mouse (configurable).
 
-**Live activities** (píldora pequeña colgando bajo el notch, sin tapar la barra)
+**Avisos** (píldora pequeña colgando bajo el notch, sin tapar la barra)
 - Cambio de canción: carátula + ecualizador animado.
-- Volumen y brillo al tocar las teclas.
 - Conexión/desconexión del cargador.
+
+Volumen y brillo no tienen aviso a propósito: macOS ya muestra el suyo y
+duplicarlo costaba un sondeo permanente para nada.
 
 **Música** — Apple Music y Spotify, cada uno activable por separado (apagar el
 que no uses ahorra una consulta y un permiso de automatización)
@@ -107,8 +109,7 @@ notch, promediando tiempo de CPU real sobre una ventana de 45 s:
 | Escenario | CPU | Memoria |
 |---|---|---|
 | Antes de optimizar, en reposo | 5,33 % | 125 MB |
-| **En reposo** | **0,5–0,9 %** | 57 MB |
-| Isla en reposo sin ningún aviso activo | 0,20 % | 53 MB |
+| **En reposo** | **0,40 %** | 73 MB |
 | Píldora de canción animada | 1,35 % | 69 MB |
 | Isla abierta (vidrio en vivo) | 3,40 % | 73 MB |
 
@@ -128,8 +129,9 @@ Lo que se cambió:
 - **Volumen por evento.** El listener estaba puesto en la propiedad de volumen
   "virtual", que no notifica; ahora escucha la escala por canal y en cuanto
   llega el primer aviso apaga el sondeo.
-- **Brillo por evento** (`com.apple.backlight.changed`), con sondeo de respaldo
-  si esa notificación no llega.
+- **Sin vigilancia de volumen ni de brillo.** Eran dos sondeos permanentes para
+  duplicar avisos que el sistema ya da. Además el brillo automático del Mac
+  hace microajustes constantes: la píldora salía sola varias veces por minuto.
 - **Sondeo del puntero adaptativo**: 8 Hz lejos del borde superior, 30 Hz cerca
   del notch o con la isla abierta, en vez de 60 Hz constantes, con salida
   temprana en el camino caliente. El trabajo real va por monitores de eventos;

@@ -26,8 +26,6 @@ final class Prefs: ObservableObject {
 
     // Live activities
     @Published var liveMusic: Bool { didSet { d.set(liveMusic, forKey: K.liveMusic) } }
-    @Published var liveVolume: Bool { didSet { d.set(liveVolume, forKey: K.liveVolume) } }
-    @Published var liveBrightness: Bool { didSet { d.set(liveBrightness, forKey: K.liveBrightness) } }
     @Published var liveBattery: Bool { didSet { d.set(liveBattery, forKey: K.liveBattery) } }
     @Published var activityDuration: Double { didSet { d.set(activityDuration, forKey: K.activityDuration) } }
 
@@ -53,8 +51,6 @@ final class Prefs: ObservableObject {
         static let scrollVolume = "scrollVolume"
         static let scrollTrack = "scrollTrack"
         static let liveMusic = "liveMusic"
-        static let liveVolume = "liveVolume"
-        static let liveBrightness = "liveBrightness"
         static let liveBattery = "liveBattery"
         static let activityDuration = "activityDuration"
         static let enableMusic = "enableMusic"
@@ -79,8 +75,6 @@ final class Prefs: ObservableObject {
             K.scrollVolume: true,
             K.scrollTrack: true,
             K.liveMusic: true,
-            K.liveVolume: true,
-            K.liveBrightness: true,
             K.liveBattery: true,
             K.activityDuration: 2.2,
             K.enableMusic: true,
@@ -102,8 +96,6 @@ final class Prefs: ObservableObject {
         scrollVolume = d.bool(forKey: K.scrollVolume)
         scrollTrack = d.bool(forKey: K.scrollTrack)
         liveMusic = d.bool(forKey: K.liveMusic)
-        liveVolume = d.bool(forKey: K.liveVolume)
-        liveBrightness = d.bool(forKey: K.liveBrightness)
         liveBattery = d.bool(forKey: K.liveBattery)
         activityDuration = d.double(forKey: K.activityDuration)
         enableMusic = d.bool(forKey: K.enableMusic)
@@ -117,7 +109,7 @@ final class Prefs: ObservableObject {
         for key in [K.expandedWidth, K.expandedHeight, K.cornerRadius, K.extraClosedWidth,
                     K.rimOpacity, K.openOnHover, K.hoverOpenDelay,
                     K.followMouseScreen, K.haptics, K.showMenuBarIcon, K.scrollVolume, K.scrollTrack,
-                    K.liveMusic, K.liveVolume, K.liveBrightness, K.liveBattery,
+                    K.liveMusic, K.liveBattery,
                     K.activityDuration, K.enableMusic, K.enableShelf, K.useAppleMusic, K.useSpotify,
                     K.useAppleMusic, K.useSpotify] {
             d.removeObject(forKey: key)
@@ -135,8 +127,6 @@ final class Prefs: ObservableObject {
         scrollVolume = d.bool(forKey: K.scrollVolume)
         scrollTrack = d.bool(forKey: K.scrollTrack)
         liveMusic = d.bool(forKey: K.liveMusic)
-        liveVolume = d.bool(forKey: K.liveVolume)
-        liveBrightness = d.bool(forKey: K.liveBrightness)
         liveBattery = d.bool(forKey: K.liveBattery)
         activityDuration = d.double(forKey: K.activityDuration)
         enableMusic = d.bool(forKey: K.enableMusic)

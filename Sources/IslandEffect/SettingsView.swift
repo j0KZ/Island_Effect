@@ -93,9 +93,10 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
             Section("Avisos bajo el notch") {
+                Text("Volumen y brillo no aparecen: macOS ya muestra los suyos.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 Toggle("Cambio de canción", isOn: $prefs.liveMusic)
-                Toggle("Volumen", isOn: $prefs.liveVolume)
-                Toggle("Brillo", isOn: $prefs.liveBrightness)
                 Toggle("Carga de batería", isOn: $prefs.liveBattery)
                 HStack {
                     Text("Duración")

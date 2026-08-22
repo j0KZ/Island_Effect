@@ -21,8 +21,6 @@ enum NotchTab: String, CaseIterable, Identifiable {
 
 enum LiveActivity: Equatable {
     case music(title: String, subtitle: String, playing: Bool)
-    case volume(Float, muted: Bool)
-    case brightness(Float)
     case battery(percent: Int, plugged: Bool, charging: Bool)
     case message(text: String, symbol: String, tint: LiveTint)
 
@@ -87,8 +85,6 @@ final class NotchViewModel: ObservableObject {
                            textWidth(subtitle, size: 9.5, weight: .regular))
             // 20 de márgenes + 24 carátula + 18 ecualizador + 3 huecos de 8 + holgura
             return CGSize(width: clampWidth(98 + text), height: 40)
-        case .volume, .brightness:
-            return CGSize(width: 264, height: 30)
         case .battery(let percent, let plugged, let charging):
             let label = charging ? "Cargando" : (plugged ? "Conectado" : "Con batería")
             let text = textWidth(label, size: 11, weight: .medium)
