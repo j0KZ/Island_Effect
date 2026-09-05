@@ -216,10 +216,9 @@ final class NotchController {
     private let idleRate: Double = 8
     private let activeRate: Double = 30
     /// Margen para volver a entrar sin que la isla se cierre en la cara.
-    /// Sale a unos 2,5 s de reloj: la cuenta arranca cuando el puntero deja
-    /// el panel (que cuelga 200 px bajo el notch, así que apartar el mouse ya
-    /// se come unas décimas) y después queda la animación de cierre.
-    private let hoverCloseDelay: Double = 1.7
+    /// La cuenta arranca cuando el puntero deja el panel (que cuelga 200 px
+    /// bajo el notch, así que apartar el mouse ya se come unas décimas).
+    private let hoverCloseDelay: Double = 1.2
 
     /// Reprograma el sondeo solo cuando cambia el ritmo, para no despertar la
     /// CPU 60 veces por segundo cuando el puntero está lejos del notch.
@@ -304,7 +303,10 @@ final class NotchController {
                 self.closeWork = nil
                 guard !self.isInsideIsland(NSEvent.mouseLocation, padding: hoverPadding) else { return }
                 IslandDebug.log("close: hover fuera en \(NSEvent.mouseLocation)")
-                withAnimation(.island) { self.viewModel.close() }
+                // Al irse se cierra con el resorte corto: con el largo (el de
+                // abrir) la isla seguía medio segundo en pantalla después de
+                // que ya no la querías.
+                withAnimation(.islandFast) { self.viewModel.close() }
             }
             closeWork = work
             DispatchQueue.main.asyncAfter(deadline: .now() + hoverCloseDelay, execute: work)
