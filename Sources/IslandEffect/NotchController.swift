@@ -110,6 +110,41 @@ final class NotchController {
         islandRects(padding: padding).contains { $0.contains(point) }
     }
 
+    /// ¿El puntero atravesó la isla ENTRE dos muestras? Moviendo rápido, el
+    /// sistema entrega saltos de cientos de puntos y el notch (220 × 38 aquí)
+    /// cabe entero entre dos posiciones consecutivas: mirando solo los puntos,
+    /// una pasada rápida no se detecta jamás.
+    private func crossedIsland(from previous: CGPoint, to point: CGPoint, padding: CGFloat) -> Bool {
+        guard previous.x >= 0, previous != point else { return false }
+        return islandRects(padding: padding).contains {
+            Self.segment(previous, point, intersects: $0)
+        }
+    }
+
+    /// Recorte de Liang-Barsky: el tramo toca el rectángulo si el intervalo de
+    /// parámetros que sobrevive a los cuatro bordes no queda vacío.
+    private static func segment(_ a: CGPoint, _ b: CGPoint, intersects rect: CGRect) -> Bool {
+        var enter: CGFloat = 0, exit: CGFloat = 1
+        let d = CGPoint(x: b.x - a.x, y: b.y - a.y)
+        let edges = [(-d.x, a.x - rect.minX), (d.x, rect.maxX - a.x),
+                     (-d.y, a.y - rect.minY), (d.y, rect.maxY - a.y)]
+        for (direction, distance) in edges {
+            if direction == 0 {
+                if distance < 0 { return false }   // paralelo al borde y por fuera
+                continue
+            }
+            let t = distance / direction
+            if direction < 0 {
+                if t > exit { return false }
+                enter = max(enter, t)
+            } else {
+                if t < enter { return false }
+                exit = min(exit, t)
+            }
+        }
+        return true
+    }
+
     /// Lo mismo, pero en coordenadas de la vista (origen abajo-izquierda).
     private func isInsideIslandView(_ point: CGPoint) -> Bool {
         guard let panel else { return false }
@@ -236,19 +271,23 @@ final class NotchController {
 
     private func handleMouseMoved() {
         let location = NSEvent.mouseLocation
+        let previous = lastMouseLocation
         // Cerca del borde superior conviene reaccionar rápido; lejos, no.
-        let nearTop = location.y > currentScreen.frame.maxY - 220
+        let band = currentScreen.frame.maxY - 220
+        let nearTop = location.y > band
+
         setPollRate(nearTop || viewModel.isOpen || viewModel.isHovering ? activeRate : idleRate)
 
         // Camino rápido: con el puntero lejos y la isla en reposo no hay nada
-        // que hacer. Este método corre con cada movimiento del mouse.
-        if !nearTop, !viewModel.isOpen, !viewModel.isHovering {
+        // que hacer. Este método corre con cada movimiento del mouse. El salto
+        // que BAJA de la franja de arriba no se descarta: puede traer el cruce.
+        if !nearTop, previous.y <= band, !viewModel.isOpen, !viewModel.isHovering {
             if panel?.ignoresMouseEvents == false { panel?.ignoresMouseEvents = true }
             lastMouseLocation = location
             return
         }
 
-        if location == lastMouseLocation, !viewModel.isOpen, !viewModel.isHovering,
+        if location == previous, !viewModel.isOpen, !viewModel.isHovering,
            panel?.ignoresMouseEvents == true { return }
         lastMouseLocation = location
         // Cambia de pantalla si el mouse se fue a otro monitor y la isla está cerrada.
@@ -260,6 +299,7 @@ final class NotchController {
         }
 
         let inside = isInsideIsland(location, padding: hoverPadding)
+            || crossedIsland(from: previous, to: location, padding: hoverPadding)
 
         // Clave: `hitTest` solo decide el enrutado dentro de nuestra app; la
         // ventana igual se come el clic. Para que los íconos de la barra de
@@ -273,6 +313,7 @@ final class NotchController {
 
         if inside {
             if !viewModel.isHovering {
+                IslandDebug.log("hover -> dentro en \(location)")
                 withAnimation(.islandFast) { viewModel.isHovering = true }
             }
             // Hay que anularlo, no solo cancelarlo: si se queda un work item
