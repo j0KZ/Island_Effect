@@ -271,7 +271,11 @@ final class NotchController {
             if !viewModel.isHovering {
                 withAnimation(.islandFast) { viewModel.isHovering = true }
             }
+            // Hay que anularlo, no solo cancelarlo: si se queda un work item
+            // muerto aquí, la guarda `closeWork == nil` de abajo no vuelve a
+            // pasar nunca y la isla se queda abierta para siempre.
             closeWork?.cancel()
+            closeWork = nil
             guard prefs.openOnHover, !viewModel.isOpen, openWork == nil,
                   Date() >= suppressUntil,
                   !(AppDelegate.shared?.settingsVisible ?? false) else { return }
