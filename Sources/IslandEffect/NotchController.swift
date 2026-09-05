@@ -216,10 +216,10 @@ final class NotchController {
     private let idleRate: Double = 8
     private let activeRate: Double = 30
     /// Margen para volver a entrar sin que la isla se cierre en la cara.
-    /// Sale a unos 3 s de reloj: la cuenta arranca cuando el puntero deja el
-    /// panel (que cuelga 200 px bajo el notch, así que apartar el mouse ya se
-    /// come unas décimas) y después queda la animación de cierre.
-    private let hoverCloseDelay: Double = 2.2
+    /// Sale a unos 2,5 s de reloj: la cuenta arranca cuando el puntero deja
+    /// el panel (que cuelga 200 px bajo el notch, así que apartar el mouse ya
+    /// se come unas décimas) y después queda la animación de cierre.
+    private let hoverCloseDelay: Double = 1.7
 
     /// Reprograma el sondeo solo cuando cambia el ritmo, para no despertar la
     /// CPU 60 veces por segundo cuando el puntero está lejos del notch.
