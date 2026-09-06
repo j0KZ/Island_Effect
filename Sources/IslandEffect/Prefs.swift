@@ -62,7 +62,7 @@ final class Prefs: ObservableObject {
             K.extraClosedWidth: 0.0,
             K.rimOpacity: 0.85,
             K.openOnHover: true,
-            K.hoverOpenDelay: 0.12,
+            K.hoverOpenDelay: 0.4,
             K.followMouseScreen: true,
             K.haptics: true,
             K.showMenuBarIcon: true,
