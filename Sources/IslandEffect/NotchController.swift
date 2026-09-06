@@ -12,7 +12,14 @@ final class NotchController {
     private let prefs = Prefs.shared
 
     private var monitors: [Any] = []
-    private var openWork: DispatchWorkItem?
+    /// Desde cuándo el puntero está sobre la isla, y desde cuándo la dejó.
+    /// El tiempo se ACUMULA: con un disparo diferido había que estar encima
+    /// justo en el instante del disparo, y salirse un momento obligaba a
+    /// empezar de cero. Así abre en cuanto se cumple la espera.
+    private var hoverSince: Date?
+    private var leftIslandAt: Date?
+    /// Cuánto puede salirse el puntero sin perder lo acumulado.
+    private let hoverGrace: Double = 0.25
     private var closeWork: DispatchWorkItem?
     private var cancellables = Set<AnyCancellable>()
     private var hoverTimer: Timer?
@@ -22,9 +29,11 @@ final class NotchController {
 
     /// Margen transparente alrededor del contenido (para sombras y para tener área de hover).
     private let margin: CGFloat = 60
-    /// Holgura del área sensible: mínima en reposo (para no invadir la barra
-    /// de menús) y algo mayor con la isla abierta.
-    private var hoverPadding: CGFloat { viewModel.isOpen ? 14 : 4 }
+    /// Holgura del área sensible. Generosa: con 4 px había que apuntar al
+    /// notch al píxel y el temblor de la mano bastaba para perder el hover.
+    /// No le roba clics a la barra de menús, porque quién se come los eventos
+    /// se decide aparte, con `padding: 2`.
+    private var hoverPadding: CGFloat { viewModel.isOpen ? 14 : 12 }
 
     private init() {
         let screen = ScreenMetrics.targetScreen(followMouse: Prefs.shared.followMouseScreen)
@@ -108,6 +117,41 @@ final class NotchController {
 
     private func isInsideIsland(_ point: CGPoint, padding: CGFloat = 0) -> Bool {
         islandRects(padding: padding).contains { $0.contains(point) }
+    }
+
+    /// ¿El puntero atravesó la isla ENTRE dos muestras? Moviendo rápido, el
+    /// sistema entrega saltos de cientos de puntos y el notch (220 × 38 aquí)
+    /// cabe entero entre dos posiciones consecutivas: mirando solo los puntos,
+    /// una pasada rápida no se detecta jamás.
+    private func crossedIsland(from previous: CGPoint, to point: CGPoint, padding: CGFloat) -> Bool {
+        guard previous.x >= 0, previous != point else { return false }
+        return islandRects(padding: padding).contains {
+            Self.segment(previous, point, intersects: $0)
+        }
+    }
+
+    /// Recorte de Liang-Barsky: el tramo toca el rectángulo si el intervalo de
+    /// parámetros que sobrevive a los cuatro bordes no queda vacío.
+    private static func segment(_ a: CGPoint, _ b: CGPoint, intersects rect: CGRect) -> Bool {
+        var enter: CGFloat = 0, exit: CGFloat = 1
+        let d = CGPoint(x: b.x - a.x, y: b.y - a.y)
+        let edges = [(-d.x, a.x - rect.minX), (d.x, rect.maxX - a.x),
+                     (-d.y, a.y - rect.minY), (d.y, rect.maxY - a.y)]
+        for (direction, distance) in edges {
+            if direction == 0 {
+                if distance < 0 { return false }   // paralelo al borde y por fuera
+                continue
+            }
+            let t = distance / direction
+            if direction < 0 {
+                if t > exit { return false }
+                enter = max(enter, t)
+            } else {
+                if t < enter { return false }
+                exit = min(exit, t)
+            }
+        }
+        return true
     }
 
     /// Lo mismo, pero en coordenadas de la vista (origen abajo-izquierda).
@@ -215,6 +259,10 @@ final class NotchController {
 
     private let idleRate: Double = 8
     private let activeRate: Double = 30
+    /// Margen para volver a entrar sin que la isla se cierre en la cara.
+    /// La cuenta arranca cuando el puntero deja el panel (que cuelga 200 px
+    /// bajo el notch, así que apartar el mouse ya se come unas décimas).
+    private let hoverCloseDelay: Double = 1.2
 
     /// Reprograma el sondeo solo cuando cambia el ritmo, para no despertar la
     /// CPU 60 veces por segundo cuando el puntero está lejos del notch.
@@ -232,19 +280,23 @@ final class NotchController {
 
     private func handleMouseMoved() {
         let location = NSEvent.mouseLocation
+        let previous = lastMouseLocation
         // Cerca del borde superior conviene reaccionar rápido; lejos, no.
-        let nearTop = location.y > currentScreen.frame.maxY - 220
+        let band = currentScreen.frame.maxY - 220
+        let nearTop = location.y > band
+
         setPollRate(nearTop || viewModel.isOpen || viewModel.isHovering ? activeRate : idleRate)
 
         // Camino rápido: con el puntero lejos y la isla en reposo no hay nada
-        // que hacer. Este método corre con cada movimiento del mouse.
-        if !nearTop, !viewModel.isOpen, !viewModel.isHovering {
+        // que hacer. Este método corre con cada movimiento del mouse. El salto
+        // que BAJA de la franja de arriba no se descarta: puede traer el cruce.
+        if !nearTop, previous.y <= band, !viewModel.isOpen, !viewModel.isHovering {
             if panel?.ignoresMouseEvents == false { panel?.ignoresMouseEvents = true }
             lastMouseLocation = location
             return
         }
 
-        if location == lastMouseLocation, !viewModel.isOpen, !viewModel.isHovering,
+        if location == previous, !viewModel.isOpen, !viewModel.isHovering,
            panel?.ignoresMouseEvents == true { return }
         lastMouseLocation = location
         // Cambia de pantalla si el mouse se fue a otro monitor y la isla está cerrada.
@@ -256,6 +308,7 @@ final class NotchController {
         }
 
         let inside = isInsideIsland(location, padding: hoverPadding)
+            || crossedIsland(from: previous, to: location, padding: hoverPadding)
 
         // Clave: `hitTest` solo decide el enrutado dentro de nuestra app; la
         // ventana igual se come el clic. Para que los íconos de la barra de
@@ -269,23 +322,31 @@ final class NotchController {
 
         if inside {
             if !viewModel.isHovering {
+                IslandDebug.log("hover -> dentro en \(location)")
                 withAnimation(.islandFast) { viewModel.isHovering = true }
             }
+            leftIslandAt = nil
+            let since = hoverSince ?? Date()
+            hoverSince = since
+            // Hay que anularlo, no solo cancelarlo: si se queda un work item
+            // muerto aquí, la guarda `closeWork == nil` de abajo no vuelve a
+            // pasar nunca y la isla se queda abierta para siempre.
             closeWork?.cancel()
-            guard prefs.openOnHover, !viewModel.isOpen, openWork == nil,
+            closeWork = nil
+            guard prefs.openOnHover, !viewModel.isOpen,
                   Date() >= suppressUntil,
-                  !(AppDelegate.shared?.settingsVisible ?? false) else { return }
-            let work = DispatchWorkItem { [weak self] in
-                guard let self else { return }
-                self.openWork = nil
-                guard self.isInsideIsland(NSEvent.mouseLocation, padding: hoverPadding) else { return }
-                withAnimation(.island) { self.viewModel.open() }
-            }
-            openWork = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + prefs.hoverOpenDelay, execute: work)
+                  !(AppDelegate.shared?.settingsVisible ?? false),
+                  Date().timeIntervalSince(since) >= prefs.hoverOpenDelay else { return }
+            // Con el resorte largo la isla tardaba medio segundo largo en
+            // terminar de desplegarse; al posar el mouse eso se siente como
+            // demora aunque el disparo haya sido inmediato.
+            withAnimation(.islandFast) { viewModel.open() }
         } else {
-            openWork?.cancel()
-            openWork = nil
+            // Salirse un momento no borra lo acumulado: solo se pierde si el
+            // puntero se queda fuera más que la gracia.
+            let left = leftIslandAt ?? Date()
+            leftIslandAt = left
+            if Date().timeIntervalSince(left) >= hoverGrace { hoverSince = nil }
             if viewModel.isHovering {
                 withAnimation(.islandFast) { viewModel.isHovering = false }
             }
@@ -295,10 +356,13 @@ final class NotchController {
                 self.closeWork = nil
                 guard !self.isInsideIsland(NSEvent.mouseLocation, padding: hoverPadding) else { return }
                 IslandDebug.log("close: hover fuera en \(NSEvent.mouseLocation)")
-                withAnimation(.island) { self.viewModel.close() }
+                // Al irse se cierra con el resorte corto: con el largo (el de
+                // abrir) la isla seguía medio segundo en pantalla después de
+                // que ya no la querías.
+                withAnimation(.islandFast) { self.viewModel.close() }
             }
             closeWork = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: work)
+            DispatchQueue.main.asyncAfter(deadline: .now() + hoverCloseDelay, execute: work)
         }
     }
 
@@ -310,7 +374,7 @@ final class NotchController {
 
     /// Cierra y desfija la isla para que no tape una ventana de la app.
     func closeForModalWindow() {
-        openWork?.cancel(); openWork = nil
+        hoverSince = nil
         viewModel.isPinned = false
         withAnimation(.island) { viewModel.close(force: true) }
         suppressUntil = Date().addingTimeInterval(1.0)
