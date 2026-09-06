@@ -328,7 +328,10 @@ final class NotchController {
                 guard let self else { return }
                 self.openWork = nil
                 guard self.isInsideIsland(NSEvent.mouseLocation, padding: hoverPadding) else { return }
-                withAnimation(.island) { self.viewModel.open() }
+                // Con el resorte largo la isla tardaba medio segundo largo en
+                // terminar de desplegarse; al posar el mouse eso se siente
+                // como demora aunque el disparo haya sido inmediato.
+                withAnimation(.islandFast) { self.viewModel.open() }
             }
             openWork = work
             DispatchQueue.main.asyncAfter(deadline: .now() + prefs.hoverOpenDelay, execute: work)
