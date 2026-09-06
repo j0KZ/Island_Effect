@@ -12,7 +12,14 @@ final class NotchController {
     private let prefs = Prefs.shared
 
     private var monitors: [Any] = []
-    private var openWork: DispatchWorkItem?
+    /// Desde cuándo el puntero está sobre la isla, y desde cuándo la dejó.
+    /// El tiempo se ACUMULA: con un disparo diferido había que estar encima
+    /// justo en el instante del disparo, y salirse un momento obligaba a
+    /// empezar de cero. Así abre en cuanto se cumple la espera.
+    private var hoverSince: Date?
+    private var leftIslandAt: Date?
+    /// Cuánto puede salirse el puntero sin perder lo acumulado.
+    private let hoverGrace: Double = 0.25
     private var closeWork: DispatchWorkItem?
     private var cancellables = Set<AnyCancellable>()
     private var hoverTimer: Timer?
@@ -318,30 +325,28 @@ final class NotchController {
                 IslandDebug.log("hover -> dentro en \(location)")
                 withAnimation(.islandFast) { viewModel.isHovering = true }
             }
+            leftIslandAt = nil
+            let since = hoverSince ?? Date()
+            hoverSince = since
             // Hay que anularlo, no solo cancelarlo: si se queda un work item
             // muerto aquí, la guarda `closeWork == nil` de abajo no vuelve a
             // pasar nunca y la isla se queda abierta para siempre.
             closeWork?.cancel()
             closeWork = nil
-            guard prefs.openOnHover, !viewModel.isOpen, openWork == nil,
+            guard prefs.openOnHover, !viewModel.isOpen,
                   Date() >= suppressUntil,
-                  !(AppDelegate.shared?.settingsVisible ?? false) else { return }
-            let work = DispatchWorkItem { [weak self] in
-                guard let self else { return }
-                self.openWork = nil
-                guard self.isInsideIsland(NSEvent.mouseLocation, padding: hoverPadding) else { return }
-                // Con el resorte largo la isla tardaba medio segundo largo en
-                // terminar de desplegarse; al posar el mouse eso se siente
-                // como demora aunque el disparo haya sido inmediato.
-                withAnimation(.islandFast) { self.viewModel.open() }
-            }
-            openWork = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + prefs.hoverOpenDelay, execute: work)
+                  !(AppDelegate.shared?.settingsVisible ?? false),
+                  Date().timeIntervalSince(since) >= prefs.hoverOpenDelay else { return }
+            // Con el resorte largo la isla tardaba medio segundo largo en
+            // terminar de desplegarse; al posar el mouse eso se siente como
+            // demora aunque el disparo haya sido inmediato.
+            withAnimation(.islandFast) { viewModel.open() }
         } else {
-            // Ojo: el trabajo de apertura NO se cancela aquí. Ya comprueba al
-            // dispararse si el puntero sigue encima, así que dejarlo vivo hace
-            // que un temblor no reinicie la espera; cancelarlo obligaba a
-            // quedarse clavado en el notch los 0,4 s enteros.
+            // Salirse un momento no borra lo acumulado: solo se pierde si el
+            // puntero se queda fuera más que la gracia.
+            let left = leftIslandAt ?? Date()
+            leftIslandAt = left
+            if Date().timeIntervalSince(left) >= hoverGrace { hoverSince = nil }
             if viewModel.isHovering {
                 withAnimation(.islandFast) { viewModel.isHovering = false }
             }
@@ -369,7 +374,7 @@ final class NotchController {
 
     /// Cierra y desfija la isla para que no tape una ventana de la app.
     func closeForModalWindow() {
-        openWork?.cancel(); openWork = nil
+        hoverSince = nil
         viewModel.isPinned = false
         withAnimation(.island) { viewModel.close(force: true) }
         suppressUntil = Date().addingTimeInterval(1.0)
