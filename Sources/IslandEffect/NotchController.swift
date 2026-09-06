@@ -22,9 +22,11 @@ final class NotchController {
 
     /// Margen transparente alrededor del contenido (para sombras y para tener área de hover).
     private let margin: CGFloat = 60
-    /// Holgura del área sensible: mínima en reposo (para no invadir la barra
-    /// de menús) y algo mayor con la isla abierta.
-    private var hoverPadding: CGFloat { viewModel.isOpen ? 14 : 4 }
+    /// Holgura del área sensible. Generosa: con 4 px había que apuntar al
+    /// notch al píxel y el temblor de la mano bastaba para perder el hover.
+    /// No le roba clics a la barra de menús, porque quién se come los eventos
+    /// se decide aparte, con `padding: 2`.
+    private var hoverPadding: CGFloat { viewModel.isOpen ? 14 : 12 }
 
     private init() {
         let screen = ScreenMetrics.targetScreen(followMouse: Prefs.shared.followMouseScreen)
@@ -336,8 +338,10 @@ final class NotchController {
             openWork = work
             DispatchQueue.main.asyncAfter(deadline: .now() + prefs.hoverOpenDelay, execute: work)
         } else {
-            openWork?.cancel()
-            openWork = nil
+            // Ojo: el trabajo de apertura NO se cancela aquí. Ya comprueba al
+            // dispararse si el puntero sigue encima, así que dejarlo vivo hace
+            // que un temblor no reinicie la espera; cancelarlo obligaba a
+            // quedarse clavado en el notch los 0,4 s enteros.
             if viewModel.isHovering {
                 withAnimation(.islandFast) { viewModel.isHovering = false }
             }
