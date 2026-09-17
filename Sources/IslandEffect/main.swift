@@ -1,7 +1,7 @@
 import AppKit
+import IslandEffectKit
 
-/// Marca de arranque, para poder medir cuánto tarda la isla en estar lista.
-let launchStart = Date()
+launchStart = Date()
 
 let app = NSApplication.shared
 let delegate = AppDelegate()

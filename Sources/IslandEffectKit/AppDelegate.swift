@@ -1,7 +1,12 @@
 import AppKit
 import Combine
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+/// Marca de arranque, para poder medir cuánto tarda la isla en estar lista.
+/// La fija `main.swift` al empezar: en una librería los globales se inicializan
+/// al primer uso, que sería demasiado tarde.
+public var launchStart = Date()
+
+public final class AppDelegate: NSObject, NSApplicationDelegate {
     static private(set) var shared: AppDelegate?
 
     private var statusItem: NSStatusItem?
@@ -10,7 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Con Preferencias abierto la isla no debe desplegarse: taparía la ventana.
     var settingsVisible: Bool { settingsWindow?.window?.isVisible ?? false }
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
+    public func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.shared = self
         NSApp.setActivationPolicy(.accessory)
 
@@ -54,7 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+    public func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         showSettings()
         return true
     }
@@ -118,7 +123,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func quit() { NSApp.terminate(nil) }
 
-    func applicationWillTerminate(_ notification: Notification) {
+    public func applicationWillTerminate(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
     }
 }
