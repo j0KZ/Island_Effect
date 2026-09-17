@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Combine
 
 struct MusicView: View {
     @ObservedObject var vm: NotchViewModel
