@@ -23,7 +23,9 @@
 "Gestures" = "Gestos";
 "Horizontal scroll = previous/next track" = "Scroll horizontal = canción anterior/siguiente";
 "Island Effect Preferences" = "Preferencias de Island Effect";
+"Keep on the shelf" = "Dejar en la repisa";
 "Keep open" = "Mantener abierto";
+"Leaves the shelf soon" = "Se va de la repisa pronto";
 "Menu bar icon" = "Ícono en la barra de menús";
 "Modules" = "Módulos";
 "Music" = "Música";
@@ -51,9 +53,13 @@
 "Remove from shelf" = "Quitar de la repisa";
 "Restore defaults" = "Restaurar valores por omisión";
 "Retry" = "Reintentar";
+"Screenshot ready" = "Captura lista";
+"Screenshot taken" = "Captura de pantalla";
+"Screenshots land on the shelf" = "Las capturas caen en la repisa";
 "Shelf" = "Repisa";
 "Show in Finder" = "Mostrar en Finder";
 "System Settings › Privacy & Security › Automation\\nEnable Music and Spotify for Island Effect." = "Ajustes del Sistema › Privacidad y seguridad › Automatización\\nActiva Música y Spotify para Island Effect.";
+"They leave after" = "Se van a los";
 "They stay here, ready to drag wherever you want" = "Quedan acá listos para arrastrarlos a donde quieras";
 "Track change" = "Cambio de canción";
 "Trackpad haptics" = "Respuesta háptica del trackpad";
@@ -66,3 +72,4 @@
 "Volume and brightness are not shown: macOS already shows its own." = "Volumen y brillo no aparecen: macOS ya muestra los suyos.";
 "file" = "archivo";
 "files" = "archivos";
+"macOS already shows a thumbnail in the corner, but it lasts five seconds. This one waits for you, and clears itself once you use it." = "macOS ya muestra una miniatura en la esquina, pero dura cinco segundos. Esta te espera, y se borra sola en cuanto la usas.";

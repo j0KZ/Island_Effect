@@ -57,6 +57,19 @@ one you don't use saves a query and an automation prompt)
   you want, or use open / show in Finder / copy path.
 - Persists across sessions.
 
+**Screenshot tray**
+- Every screenshot lands on the shelf by itself, as a thumbnail with a countdown
+  over it. Drag it where it was going and it leaves; if you never use it, it
+  clears itself after five minutes (1 to 30, configurable).
+- macOS already shows its thumbnail in the bottom-right corner, but it lasts
+  five seconds, only shows the last one and leaves nothing behind. This one
+  waits, and stacks up.
+- To keep one, drag it back onto the notch: the countdown goes away and it
+  becomes an ordinary shelf item.
+- Finds screenshots wherever you configured them (`defaults write
+  com.apple.screencapture location`), not just on the Desktop. Screen recordings
+  from ⇧⌘5 included.
+
 **How you use it**
 - Hover the notch to open it.
 - Click: it stays open; click again to close.
@@ -128,7 +141,8 @@ is copying a `.lproj` folder and translating it.
 | `RootView.swift` | Background, outline, notice pill and open panel |
 | `MediaManager.swift` | Now playing and control: distributed notifications + AppleScript |
 | `MusicView.swift` | The player, in three densities depending on panel height |
-| `ShelfStore.swift` / `ShelfView.swift` | File shelf |
+| `ShelfStore.swift` / `ShelfView.swift` | File shelf and screenshot tray |
+| `ScreenshotWatcher.swift` | Watches the screenshot folder (`DispatchSource`) |
 | `SystemMonitors.swift` | Volume (CoreAudio, on demand) and battery (IOKit) |
 | `Components.swift` | Shared pieces: artwork, slider, equalizer, buttons |
 | `SettingsView.swift` | Preferences + login item |

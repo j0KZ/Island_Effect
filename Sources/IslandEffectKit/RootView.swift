@@ -1,4 +1,5 @@
 import SwiftUI
+import ImageIO
 import AppKit
 import Combine
 import UniformTypeIdentifiers
@@ -280,6 +281,8 @@ struct ActivityBar: View {
         case .battery(_, let plugged, let charging):
             symbol(charging ? "battery.100.bolt" : (plugged ? "powerplug.fill" : "battery.50"),
                    tint: charging ? .green : .white)
+        case .screenshot(let url, _):
+            ScreenshotThumb(url: url, side: 26)
         }
     }
 
@@ -302,6 +305,16 @@ struct ActivityBar: View {
                 .foregroundStyle(.white.opacity(0.75))
                 .lineLimit(1)
                 .accessibilityValue("\(percent) %")
+        case .screenshot(_, let sizeLabel):
+            VStack(alignment: .leading, spacing: 0) {
+                Text(LocalizedStringKey(LiveActivity.screenshotLabel))
+                    .font(.system(size: 11, weight: .semibold))
+                    .lineLimit(1)
+                Text(sizeLabel)
+                    .font(.system(size: 9.5))
+                    .foregroundStyle(.white.opacity(0.55))
+                    .lineLimit(1)
+            }
         }
     }
 
@@ -319,6 +332,9 @@ struct ActivityBar: View {
         case .battery(let percent, _, _):
             Text("\(percent) %")
                 .font(.system(size: 11, weight: .semibold, design: .rounded).monospacedDigit())
+        case .screenshot:
+            // Dice a dónde fue a parar: a la repisa, no al limbo.
+            symbol("tray.and.arrow.down.fill", tint: .white.opacity(0.7))
         }
     }
 
@@ -329,6 +345,71 @@ struct ActivityBar: View {
             .frame(width: 16)
     }
 
+}
+
+/// La miniatura de la captura dentro de la píldora.
+///
+/// Se carga fuera del hilo principal y reducida: un PNG de pantalla completa en
+/// un Retina son 20 megapíxeles, y decodificarlo entero para enseñarlo a 26
+/// puntos congelaría la animación de apertura justo cuando se está viendo.
+struct ScreenshotThumb: View {
+    let url: URL
+    var side: CGFloat
+
+    @State private var image: NSImage?
+
+    var body: some View {
+        Group {
+            if let image = image ?? Self.cache.object(forKey: Self.key(url, side)) {
+                Image(nsImage: image)
+                    .resizable()
+                    .interpolation(.medium)
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(Color.white.opacity(0.12))
+            }
+        }
+        .frame(width: side, height: side)
+        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+        )
+        .task(id: url) {
+            guard Self.cache.object(forKey: Self.key(url, side)) == nil else { return }
+            image = await Self.thumbnail(of: url, side: side * 3)
+            if let image { Self.cache.setObject(image, forKey: Self.key(url, side)) }
+        }
+    }
+
+    /// La misma captura sale en la píldora y en la repisa, y la repisa se vuelve
+    /// a montar con cada apertura de la isla. Sin esto se decodifica el PNG cada
+    /// vez y la miniatura parpadea en gris antes de aparecer.
+    private static let cache = NSCache<NSString, NSImage>()
+
+    private static func key(_ url: URL, _ side: CGFloat) -> NSString {
+        "\(url.path)@\(Int(side))" as NSString
+    }
+
+    /// Fuera de la vista y `nonisolated` para que no arrastre al hilo principal.
+    nonisolated static func thumbnail(of url: URL, side: CGFloat) async -> NSImage? {
+        await Task.detached(priority: .userInitiated) { () -> NSImage? in
+            guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else {
+                return NSWorkspace.shared.icon(forFile: url.path)
+            }
+            let options: [CFString: Any] = [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceCreateThumbnailWithTransform: true,
+                kCGImageSourceThumbnailMaxPixelSize: Int(side)
+            ]
+            guard let cg = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+                // Una grabación de pantalla no es una imagen: vale su ícono.
+                return NSWorkspace.shared.icon(forFile: url.path)
+            }
+            return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+        }.value
+    }
 }
 
 // MARK: - Estado abierto

@@ -28,8 +28,11 @@ struct PrefsTests {
         #expect(prefs.showMenuBarIcon)
         #expect(prefs.liveMusic)
         #expect(prefs.liveBattery)
+        #expect(prefs.liveScreenshot)
         #expect(prefs.enableMusic)
         #expect(prefs.enableShelf)
+        #expect(prefs.captureShelf)
+        #expect(prefs.captureMinutes == 5)
         #expect(prefs.useAppleMusic)
         #expect(prefs.useSpotify)
         // Lo único que viene apagado: la app no se mete sola en el arranque.
@@ -63,6 +66,7 @@ struct PrefsTests {
         defaults.set(-3.0, forKey: "rimOpacity")
         defaults.set(50.0, forKey: "hoverOpenDelay")
         defaults.set(0.0, forKey: "activityDuration")
+        defaults.set(0.0, forKey: "captureMinutes")
 
         let prefs = Prefs(defaults: defaults)
         #expect(prefs.expandedWidth == Prefs.Limits.expandedWidth.lowerBound)
@@ -70,6 +74,8 @@ struct PrefsTests {
         #expect(prefs.rimOpacity == Prefs.Limits.rimOpacity.lowerBound)
         #expect(prefs.hoverOpenDelay == Prefs.Limits.hoverOpenDelay.upperBound)
         #expect(prefs.activityDuration == Prefs.Limits.activityDuration.lowerBound)
+        // Con 0 minutos la captura caducaría antes de llegar a verse.
+        #expect(prefs.captureMinutes == Prefs.Limits.captureMinutes.lowerBound)
     }
 
     @Test("Los valores de fábrica están dentro de los rangos que ofrece Preferencias")
@@ -82,6 +88,7 @@ struct PrefsTests {
         #expect(Prefs.Limits.rimOpacity.contains(prefs.rimOpacity))
         #expect(Prefs.Limits.hoverOpenDelay.contains(prefs.hoverOpenDelay))
         #expect(Prefs.Limits.activityDuration.contains(prefs.activityDuration))
+        #expect(Prefs.Limits.captureMinutes.contains(prefs.captureMinutes))
     }
 
     @Test("Restablecer deja todo como recién instalado")

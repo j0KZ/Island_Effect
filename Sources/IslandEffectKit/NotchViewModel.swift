@@ -34,6 +34,10 @@ enum NotchTab: String, CaseIterable, Identifiable {
 enum LiveActivity: Equatable {
     case music(title: String, subtitle: String, playing: Bool)
     case battery(percent: Int, plugged: Bool, charging: Bool)
+    /// Acabas de hacer una captura y ya está en la repisa. La ruta va dentro
+    /// porque la píldora enseña la miniatura: sin ella el aviso sería un texto
+    /// que hay que creerse.
+    case screenshot(url: URL, sizeLabel: String)
 
     /// El texto de la píldora de batería. Vive aquí porque lo usan tanto la
     /// vista como el cálculo del ancho: si cada una tuviera el suyo, al cambiar
@@ -41,6 +45,10 @@ enum LiveActivity: Equatable {
     static func batteryLabel(plugged: Bool, charging: Bool) -> String {
         charging ? "Charging" : (plugged ? "Plugged in" : "On battery")
     }
+
+    /// Lo mismo para la captura: un solo sitio donde dice qué pone la píldora.
+    static let screenshotLabel = "Screenshot ready"
+
 }
 
 /// Estado de la isla: cerrada, en hover, o abierta.
@@ -112,6 +120,11 @@ final class NotchViewModel: ObservableObject {
             let text = textWidth(label, size: 11, weight: .medium)
                 + textWidth(" \(percent) %", size: 11, weight: .semibold)
             return CGSize(width: clampWidth(86 + text), height: 30)
+        case .screenshot(_, let sizeLabel):
+            let text = max(textWidth(String(localized: "Screenshot ready"), size: 11, weight: .semibold),
+                           textWidth(sizeLabel, size: 9.5, weight: .regular))
+            // 20 de márgenes + 24 miniatura + 16 del ícono de repisa + huecos
+            return CGSize(width: clampWidth(98 + text), height: 40)
         }
     }
 

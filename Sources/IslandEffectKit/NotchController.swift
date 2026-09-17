@@ -241,6 +241,23 @@ final class NotchController {
             guard let self, self.prefs.liveMusic, np.isActive else { return }
             self.announceTrack(np)
         }
+        ScreenshotWatcher.shared.onCapture = { [weak self] url in
+            guard let self, self.prefs.captureShelf else { return }
+            self.announceCapture(url)
+        }
+    }
+
+    /// Una captura recién hecha: a la repisa y, si el usuario quiere, un aviso.
+    ///
+    /// El archivo se acaba de crear y puede estar todavía escribiéndose, así que
+    /// el tamaño se lee ahora y no al dibujar: una píldora que dijera "0 bytes"
+    /// porque llegó medio milisegundo antes sería peor que no decir nada.
+    private func announceCapture(_ url: URL) {
+        ShelfStore.shared.addCapture(url: url, ttl: prefs.captureMinutes * 60)
+        guard prefs.liveScreenshot else { return }
+        let bytes = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+        let size = ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
+        viewModel.show(.screenshot(url: url, sizeLabel: size))
     }
 
     /// La carátula llega después del aviso de pista nueva (hay que pedir la URL

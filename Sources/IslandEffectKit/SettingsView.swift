@@ -94,6 +94,19 @@ struct SettingsView: View {
                 Text("A pocket: drop files onto the notch and drag them back out wherever you need them.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Divider()
+                Toggle("Screenshots land on the shelf", isOn: $prefs.captureShelf)
+                    .disabled(!prefs.enableShelf)
+                HStack {
+                    Text("They leave after")
+                    Slider(value: $prefs.captureMinutes, in: Prefs.Limits.captureMinutes, step: 1)
+                    Text(String(format: "%.0f min", prefs.captureMinutes))
+                        .monospacedDigit().frame(width: 52, alignment: .trailing)
+                }
+                .disabled(!prefs.enableShelf || !prefs.captureShelf)
+                Text("macOS already shows a thumbnail in the corner, but it lasts five seconds. This one waits for you, and clears itself once you use it.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             Section("Notices under the notch") {
                 Text("Volume and brightness are not shown: macOS already shows its own.")
@@ -101,6 +114,8 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
                 Toggle("Track change", isOn: $prefs.liveMusic)
                 Toggle("Battery charging", isOn: $prefs.liveBattery)
+                Toggle("Screenshot taken", isOn: $prefs.liveScreenshot)
+                    .disabled(!prefs.captureShelf)
                 HStack {
                     Text("Duration")
                     Slider(value: $prefs.activityDuration, in: 1...6, step: 0.2)

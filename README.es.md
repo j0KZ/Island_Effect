@@ -57,6 +57,18 @@ que no uses ahorra una consulta y un permiso de automatización)
   quieras, o usa abrir / mostrar en Finder / copiar ruta.
 - Persiste entre sesiones.
 
+**Bandeja de capturas**
+- Cada captura de pantalla cae sola en la repisa, con su miniatura y una cuenta
+  atrás encima. La arrastras a donde iba y se va; si no la usas, se borra sola a
+  los cinco minutos (configurable entre 1 y 30).
+- macOS ya muestra su miniatura abajo a la derecha, pero dura cinco segundos,
+  solo enseña la última y no deja rastro. Esta espera, y acumula.
+- Si quieres quedarte con una, arrástrala de vuelta al notch: deja de tener
+  cuenta atrás y pasa a la repisa de siempre.
+- Encuentra las capturas donde las tengas configuradas (`defaults write
+  com.apple.screencapture location`), no solo en el Escritorio. Incluye las
+  grabaciones de pantalla de ⇧⌘5.
+
 **Cómo se usa**
 - Pasa el mouse por el notch para abrirla.
 - Clic: se queda abierta; otro clic la cierra.
@@ -129,7 +141,8 @@ un idioma es copiar una carpeta `.lproj` y traducir.
 | `RootView.swift` | Fondo, contorno, píldora de aviso y panel abierto |
 | `MediaManager.swift` | Now playing y control: notificaciones distribuidas + AppleScript |
 | `MusicView.swift` | Reproductor, con tres densidades según el alto del panel |
-| `ShelfStore.swift` / `ShelfView.swift` | Repisa de archivos |
+| `ShelfStore.swift` / `ShelfView.swift` | Repisa de archivos y bandeja de capturas |
+| `ScreenshotWatcher.swift` | Vigila la carpeta de capturas (`DispatchSource`) |
 | `SystemMonitors.swift` | Volumen (CoreAudio, bajo demanda) y batería (IOKit) |
 | `Components.swift` | Piezas compartidas: carátula, slider, ecualizador, botones |
 | `SettingsView.swift` | Preferencias + ítem de inicio |

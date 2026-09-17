@@ -23,7 +23,9 @@
 "Gestures" = "Gestures";
 "Horizontal scroll = previous/next track" = "Horizontal scroll = previous/next track";
 "Island Effect Preferences" = "Island Effect Preferences";
+"Keep on the shelf" = "Keep on the shelf";
 "Keep open" = "Keep open";
+"Leaves the shelf soon" = "Leaves the shelf soon";
 "Menu bar icon" = "Menu bar icon";
 "Modules" = "Modules";
 "Music" = "Music";
@@ -51,9 +53,13 @@
 "Remove from shelf" = "Remove from shelf";
 "Restore defaults" = "Restore defaults";
 "Retry" = "Retry";
+"Screenshot ready" = "Screenshot ready";
+"Screenshot taken" = "Screenshot taken";
+"Screenshots land on the shelf" = "Screenshots land on the shelf";
 "Shelf" = "Shelf";
 "Show in Finder" = "Show in Finder";
 "System Settings › Privacy & Security › Automation\\nEnable Music and Spotify for Island Effect." = "System Settings › Privacy & Security › Automation\\nEnable Music and Spotify for Island Effect.";
+"They leave after" = "They leave after";
 "They stay here, ready to drag wherever you want" = "They stay here, ready to drag wherever you want";
 "Track change" = "Track change";
 "Trackpad haptics" = "Trackpad haptics";
@@ -66,3 +72,4 @@
 "Volume and brightness are not shown: macOS already shows its own." = "Volume and brightness are not shown: macOS already shows its own.";
 "file" = "file";
 "files" = "files";
+"macOS already shows a thumbnail in the corner, but it lasts five seconds. This one waits for you, and clears itself once you use it." = "macOS already shows a thumbnail in the corner, but it lasts five seconds. This one waits for you, and clears itself once you use it.";
