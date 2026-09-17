@@ -8,19 +8,32 @@ struct ScreenMetrics {
     let notchSize: CGSize
 
     static func metrics(for screen: NSScreen) -> ScreenMetrics {
-        let topInset = screen.safeAreaInsets.top
-        if topInset > 0,
-           let left = screen.auxiliaryTopLeftArea,
-           let right = screen.auxiliaryTopRightArea {
-            let width = screen.frame.width - left.width - right.width
-            if width > 40 {
-                return ScreenMetrics(screen: screen, hasNotch: true,
-                                     notchSize: CGSize(width: width, height: topInset))
+        let found = notch(frameWidth: screen.frame.width,
+                          topInset: screen.safeAreaInsets.top,
+                          left: screen.auxiliaryTopLeftArea,
+                          right: screen.auxiliaryTopRightArea)
+        return ScreenMetrics(screen: screen, hasNotch: found.hasNotch, notchSize: found.size)
+    }
+
+    /// Asa para pantallas sin notch: centrada bajo la barra de menús.
+    static let handleSize = CGSize(width: 180, height: 32)
+
+    /// Un notch de verdad deja libre una franja a cada lado de la barra de menús.
+    /// El hueco del medio es el recorte; si midiera menos que esto no sería un
+    /// notch sino un artefacto de la pantalla, y se usa el asa.
+    static let minimumNotchWidth: CGFloat = 40
+
+    /// Mide el notch a partir de lo que reporta la pantalla. Aparte de `NSScreen`
+    /// porque una pantalla no se puede fabricar en una prueba.
+    static func notch(frameWidth: CGFloat, topInset: CGFloat,
+                      left: CGRect?, right: CGRect?) -> (hasNotch: Bool, size: CGSize) {
+        if topInset > 0, let left, let right {
+            let width = frameWidth - left.width - right.width
+            if width > minimumNotchWidth {
+                return (true, CGSize(width: width, height: topInset))
             }
         }
-        // Pantalla sin notch: usamos un "asa" centrada bajo la barra de menús.
-        return ScreenMetrics(screen: screen, hasNotch: false,
-                             notchSize: CGSize(width: 180, height: 32))
+        return (false, handleSize)
     }
 
     /// Pantalla objetivo según preferencias (la del mouse, o la que tenga notch, o la principal).

@@ -133,19 +133,35 @@ final class BatteryMonitor: ObservableObject {
     }
 
     private func tick() {
-        let new = read()
-        guard new != state else { return }
-        let plugChanged = new.plugged != state.plugged
-        state = new
-        onChange?(new, plugChanged)
+        guard let change = Self.transition(from: state, to: read()) else { return }
+        state = change.state
+        onChange?(change.state, change.plugChanged)
+    }
+
+    /// Qué avisar cuando IOKit reporta. Solo interesa lo que cambió, y de eso
+    /// solo enchufar o desenchufar saca la píldora: el porcentaje baja solo.
+    static func transition(from old: BatteryState,
+                           to new: BatteryState) -> (state: BatteryState, plugChanged: Bool)? {
+        guard new != old else { return nil }
+        return (new, new.plugged != old.plugged)
     }
 
     func read() -> BatteryState {
-        var s = BatteryState()
         guard let blob = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
-              let list = IOPSCopyPowerSourcesList(blob)?.takeRetainedValue() as? [CFTypeRef] else { return s }
-        for source in list {
-            guard let desc = IOPSGetPowerSourceDescription(blob, source)?.takeUnretainedValue() as? [String: Any] else { continue }
+              let list = IOPSCopyPowerSourcesList(blob)?.takeRetainedValue() as? [CFTypeRef] else {
+            return BatteryState()
+        }
+        return Self.battery(from: list.compactMap {
+            IOPSGetPowerSourceDescription(blob, $0)?.takeUnretainedValue() as? [String: Any]
+        })
+    }
+
+    /// Interpreta las fuentes de energía que describe IOKit. Va aparte para poder
+    /// probarla con diccionarios de mentira: un Mac de escritorio, o el runner de
+    /// integración continua, no tienen batería que leer.
+    static func battery(from descriptions: [[String: Any]]) -> BatteryState {
+        var s = BatteryState()
+        for desc in descriptions {
             guard (desc[kIOPSTypeKey] as? String) == kIOPSInternalBatteryType else { continue }
             let current = desc[kIOPSCurrentCapacityKey] as? Int ?? 0
             let max = desc[kIOPSMaxCapacityKey] as? Int ?? 100

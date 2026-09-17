@@ -72,8 +72,7 @@ final class MediaManager: ObservableObject {
     private var denied = Set<String>()
     private var lastArtworkKey = ""
     private var lastSampledAt = Date()
-    private var lastAnnouncedKey = ""
-    private var lastAnnouncedPlaying = false
+    private var announcements = AnnouncementGate()
     private var artworkTask: URLSessionDataTask?
 
     private init() {}
@@ -121,20 +120,28 @@ final class MediaManager: ObservableObject {
     /// perdernos los cambios de canción (algunas versiones no las publican).
     private var sawNotification = false
     private var idleInterval: TimeInterval {
+        Self.idleInterval(liveMusic: Prefs.shared.liveMusic,
+                          sawNotification: sawNotification,
+                          isPlaying: info.isPlaying)
+    }
+
+    /// Cada cuánto sondear cuando la isla está cerrada. Es el consumo de la app
+    /// en reposo: cada sondeo lanza un `osascript`.
+    static func idleInterval(liveMusic: Bool, sawNotification: Bool, isPlaying: Bool) -> TimeInterval {
         // Sin aviso de canción no hay para qué enterarse rápido de nada.
-        guard Prefs.shared.liveMusic else { return 60 }
-        if sawNotification { return info.isPlaying ? 30 : 60 }
-        return info.isPlaying ? 3 : 8
+        guard liveMusic else { return 60 }
+        if sawNotification { return isPlaying ? 30 : 60 }
+        return isPlaying ? 3 : 8
     }
 
     private func handleNotification(_ note: Notification, app: MediaApp) {
         guard enabledApps().contains(app), let userInfo = note.userInfo else { return }
-        let state = (userInfo["Player State"] as? String) ?? ""
+        let state = userInfo["Player State"] as? String
 
         // Si suena otra app, no dejamos que la que está en pausa se imponga.
-        if info.isActive, info.app != app, info.isPlaying, state != "Playing" { return }
+        if info.isActive, info.app != app, info.isPlaying, !Self.isPlayingState(state) { return }
 
-        guard state != "Stopped" else {
+        guard !Self.isStoppedState(state) else {
             if info.app == app { apply(.empty) }
             return
         }
@@ -148,7 +155,7 @@ final class MediaManager: ObservableObject {
             sawNotification = true
             IslandDebug.log("el reproductor publica notificaciones: se deja de sondear")
         }
-        IslandDebug.log("notificación de \(app.rawValue): \(np.title) (\(state))")
+        IslandDebug.log("notificación de \(app.rawValue): \(np.title) (\(state ?? "sin estado"))")
         apply(np)
         // Un único osascript para la carátula y la posición exacta.
         if needsProgress { poll() }
@@ -168,9 +175,13 @@ final class MediaManager: ObservableObject {
     }
 
     /// Posición estimada entre sondeos, para que la barra de progreso avance suave.
-    var estimatedElapsed: Double {
+    var estimatedElapsed: Double { estimatedElapsed(at: Date()) }
+
+    /// La posición avanza sola entre sondeos para que la barra no vaya a saltos.
+    /// En pausa se congela, y nunca pasa del final de la pista.
+    func estimatedElapsed(at now: Date) -> Double {
         guard info.isPlaying else { return info.elapsed }
-        let delta = Date().timeIntervalSince(lastSampledAt)
+        let delta = now.timeIntervalSince(lastSampledAt)
         return min(info.duration, info.elapsed + delta)
     }
 
@@ -239,13 +250,7 @@ final class MediaManager: ObservableObject {
             // notificación no traían la URL, así que hay que ir a buscarla.
             fetchArtwork(for: np)
         }
-        let key = np.app.rawValue + "|" + np.trackKey
-        if np.isActive, key != lastAnnouncedKey || np.isPlaying != lastAnnouncedPlaying {
-            lastAnnouncedKey = key
-            lastAnnouncedPlaying = np.isPlaying
-            onTrackChange?(np)
-        }
-        if !np.isActive { lastAnnouncedKey = "" }
+        if announcements.shouldAnnounce(np) { onTrackChange?(np) }
         // Después de actualizar `info`, no antes: el ritmo depende de si suena.
         schedule(interval: needsProgress ? 1.0 : idleInterval)
     }
@@ -271,7 +276,7 @@ final class MediaManager: ObservableObject {
             let message = String(data: errData, encoding: .utf8)?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             IslandDebug.log("osascript falló (\(task.terminationStatus)): \(message)")
-            if message.contains("-1743") || message.localizedCaseInsensitiveContains("not authorized") {
+            if Self.isAutomationDenied(stderr: message) {
                 DispatchQueue.main.async { self.automationDenied = true }
             }
             return nil
@@ -320,10 +325,11 @@ final class MediaManager: ObservableObject {
     /// llama, según si la pista cambió o no.
     static func nowPlaying(fromNotification userInfo: [AnyHashable: Any], app: MediaApp) -> NowPlaying? {
         guard app != .none else { return nil }
-        let state = (userInfo["Player State"] as? String) ?? ""
         var np = NowPlaying()
         np.app = app
-        np.isPlaying = state == "Playing"
+        // Insensible a mayúsculas, igual que la lectura del AppleScript: no hay
+        // garantía de cómo escribe el estado cada reproductor.
+        np.isPlaying = Self.isPlayingState(userInfo["Player State"] as? String)
         np.title = userInfo["Name"] as? String ?? ""
         np.artist = userInfo["Artist"] as? String ?? ""
         np.album = userInfo["Album"] as? String ?? ""
@@ -341,6 +347,32 @@ final class MediaManager: ObservableObject {
         return np
     }
 
+    /// ¿El error de `osascript` es una negativa de permiso de automatización?
+    /// Si se deja de reconocer, la app se queda en "nada sonando" para siempre
+    /// sin ofrecer nunca el panel de permisos.
+    static func isAutomationDenied(stderr: String) -> Bool {
+        stderr.contains("-1743") || stderr.localizedCaseInsensitiveContains("not authorized")
+    }
+
+    /// ¿El reproductor dice que está sonando?
+    static func isPlayingState(_ state: String?) -> Bool {
+        state?.lowercased() == "playing"
+    }
+
+    /// ¿El reproductor dice que se detuvo del todo (no en pausa)?
+    static func isStoppedState(_ state: String?) -> Bool {
+        state?.lowercased() == "stopped"
+    }
+
+    /// Un número de la salida del AppleScript. El separador decimal es el del
+    /// sistema, así que la coma se pasa a punto; y lo que no sea un número
+    /// finito se descarta, porque un infinito o un NaN aborta el proceso en
+    /// cuanto alguien lo convierte a entero para mostrar el reloj.
+    static func seconds(_ field: String) -> Double {
+        let value = Double(field.replacingOccurrences(of: ",", with: ".")) ?? 0
+        return value.isFinite ? value : 0
+    }
+
     /// Convierte la línea del AppleScript (campos separados por tabulador) en un
     /// `NowPlaying`. Los números vienen con el separador decimal del sistema, así
     /// que la coma se pasa a punto antes de leerlos.
@@ -354,8 +386,8 @@ final class MediaManager: ObservableObject {
         np.title = parts[2]
         np.artist = parts[3]
         np.album = parts[4]
-        np.duration = Double(parts[5].replacingOccurrences(of: ",", with: ".")) ?? 0
-        np.elapsed = Double(parts[6].replacingOccurrences(of: ",", with: ".")) ?? 0
+        np.duration = Self.seconds(parts[5])
+        np.elapsed = Self.seconds(parts[6])
         np.trackKey = parts[7].isEmpty ? (np.title + np.artist) : parts[7]
         if parts.count >= 9, !parts[8].isEmpty { np.artworkURL = parts[8] }
         return np
@@ -533,5 +565,28 @@ final class MediaManager: ObservableObject {
         guard let bundle = info.app.bundleID,
               let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundle) else { return }
         NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
+    }
+}
+
+
+/// Decide cuándo sale la píldora de música.
+///
+/// Sale con cada pista nueva y con cada cambio de play/pausa, pero no con los
+/// sondeos repetidos de lo mismo; si deja de sonar algo se olvida, para que la
+/// misma canción vuelva a anunciarse cuando se retome.
+struct AnnouncementGate {
+    private var lastKey = ""
+    private var lastPlaying = false
+
+    mutating func shouldAnnounce(_ np: NowPlaying) -> Bool {
+        guard np.isActive else {
+            lastKey = ""
+            return false
+        }
+        let key = np.app.rawValue + "|" + np.trackKey
+        guard key != lastKey || np.isPlaying != lastPlaying else { return false }
+        lastKey = key
+        lastPlaying = np.isPlaying
+        return true
     }
 }

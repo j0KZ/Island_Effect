@@ -4,7 +4,7 @@ import Combine
 /// Preferencias persistentes de la app. Todo se guarda en UserDefaults.
 final class Prefs: ObservableObject {
     static let shared = Prefs()
-    private let d = UserDefaults.standard
+    private let d: UserDefaults
 
     // Apariencia
     @Published var expandedWidth: Double { didSet { d.set(expandedWidth, forKey: K.expandedWidth) } }
@@ -33,6 +33,27 @@ final class Prefs: ObservableObject {
 
     @Published var launchAtLogin: Bool { didSet { d.set(launchAtLogin, forKey: K.launchAtLogin) } }
 
+
+    /// Los rangos que ofrecen los sliders de Preferencias. Se aplican también al
+    /// leer: un valor corrupto o heredado de otra versión (un ancho de 0, por
+    /// ejemplo) dejaría la isla invisible, y desde la interfaz no habría cómo
+    /// recuperarla.
+    enum Limits {
+        static let expandedWidth: ClosedRange<Double> = 420...900
+        static let expandedHeight: ClosedRange<Double> = 96...340
+        static let cornerRadius: ClosedRange<Double> = 8...40
+        static let extraClosedWidth: ClosedRange<Double> = 0...260
+        static let rimOpacity: ClosedRange<Double> = 0...1
+        static let hoverOpenDelay: ClosedRange<Double> = 0...0.8
+        static let activityDuration: ClosedRange<Double> = 1...6
+    }
+
+    /// Estática porque el `init` la necesita antes de que el objeto exista del todo.
+    private static func clamped(_ defaults: UserDefaults, _ key: String,
+                                _ range: ClosedRange<Double>) -> Double {
+        min(max(defaults.double(forKey: key), range.lowerBound), range.upperBound)
+    }
+
     private enum K {
         static let expandedWidth = "expandedWidth"
         static let expandedHeight = "expandedHeight"
@@ -54,7 +75,10 @@ final class Prefs: ObservableObject {
         static let launchAtLogin = "launchAtLogin"
     }
 
-    private init() {
+    /// Dónde se guardan las preferencias. Se recibe para que las pruebas usen un
+    /// dominio aparte y no toquen las del usuario.
+    init(defaults: UserDefaults = .standard) {
+        d = defaults
         d.register(defaults: [
             K.expandedWidth: 620.0,
             K.expandedHeight: 200.0,
@@ -75,19 +99,19 @@ final class Prefs: ObservableObject {
             K.useSpotify: true,
             K.launchAtLogin: false
         ])
-        expandedWidth = d.double(forKey: K.expandedWidth)
-        expandedHeight = d.double(forKey: K.expandedHeight)
-        cornerRadius = d.double(forKey: K.cornerRadius)
-        extraClosedWidth = d.double(forKey: K.extraClosedWidth)
-        rimOpacity = d.double(forKey: K.rimOpacity)
+        expandedWidth = Self.clamped(d, K.expandedWidth, Limits.expandedWidth)
+        expandedHeight = Self.clamped(d, K.expandedHeight, Limits.expandedHeight)
+        cornerRadius = Self.clamped(d, K.cornerRadius, Limits.cornerRadius)
+        extraClosedWidth = Self.clamped(d, K.extraClosedWidth, Limits.extraClosedWidth)
+        rimOpacity = Self.clamped(d, K.rimOpacity, Limits.rimOpacity)
         openOnHover = d.bool(forKey: K.openOnHover)
-        hoverOpenDelay = d.double(forKey: K.hoverOpenDelay)
+        hoverOpenDelay = Self.clamped(d, K.hoverOpenDelay, Limits.hoverOpenDelay)
         followMouseScreen = d.bool(forKey: K.followMouseScreen)
         haptics = d.bool(forKey: K.haptics)
         showMenuBarIcon = d.bool(forKey: K.showMenuBarIcon)
         liveMusic = d.bool(forKey: K.liveMusic)
         liveBattery = d.bool(forKey: K.liveBattery)
-        activityDuration = d.double(forKey: K.activityDuration)
+        activityDuration = Self.clamped(d, K.activityDuration, Limits.activityDuration)
         enableMusic = d.bool(forKey: K.enableMusic)
         enableShelf = d.bool(forKey: K.enableShelf)
         useAppleMusic = d.bool(forKey: K.useAppleMusic)
@@ -103,19 +127,19 @@ final class Prefs: ObservableObject {
                     K.enableMusic, K.enableShelf, K.useAppleMusic, K.useSpotify] {
             d.removeObject(forKey: key)
         }
-        expandedWidth = d.double(forKey: K.expandedWidth)
-        expandedHeight = d.double(forKey: K.expandedHeight)
-        cornerRadius = d.double(forKey: K.cornerRadius)
-        extraClosedWidth = d.double(forKey: K.extraClosedWidth)
-        rimOpacity = d.double(forKey: K.rimOpacity)
+        expandedWidth = Self.clamped(d, K.expandedWidth, Limits.expandedWidth)
+        expandedHeight = Self.clamped(d, K.expandedHeight, Limits.expandedHeight)
+        cornerRadius = Self.clamped(d, K.cornerRadius, Limits.cornerRadius)
+        extraClosedWidth = Self.clamped(d, K.extraClosedWidth, Limits.extraClosedWidth)
+        rimOpacity = Self.clamped(d, K.rimOpacity, Limits.rimOpacity)
         openOnHover = d.bool(forKey: K.openOnHover)
-        hoverOpenDelay = d.double(forKey: K.hoverOpenDelay)
+        hoverOpenDelay = Self.clamped(d, K.hoverOpenDelay, Limits.hoverOpenDelay)
         followMouseScreen = d.bool(forKey: K.followMouseScreen)
         haptics = d.bool(forKey: K.haptics)
         showMenuBarIcon = d.bool(forKey: K.showMenuBarIcon)
         liveMusic = d.bool(forKey: K.liveMusic)
         liveBattery = d.bool(forKey: K.liveBattery)
-        activityDuration = d.double(forKey: K.activityDuration)
+        activityDuration = Self.clamped(d, K.activityDuration, Limits.activityDuration)
         enableMusic = d.bool(forKey: K.enableMusic)
         enableShelf = d.bool(forKey: K.enableShelf)
         useAppleMusic = d.bool(forKey: K.useAppleMusic)

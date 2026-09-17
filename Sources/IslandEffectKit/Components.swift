@@ -27,7 +27,12 @@ enum TimeFormat {
         }
         return String(format: "%d:%02d", s / 60, s % 60)
     }
-    static func clock(_ seconds: Double) -> String { clock(Int(seconds.rounded())) }
+    /// Un valor no finito (una emisora sin duración, por ejemplo) no se puede
+    /// convertir a entero: intentarlo aborta el proceso. Se muestra 0:00.
+    static func clock(_ seconds: Double) -> String {
+        guard seconds.isFinite else { return clock(0) }
+        return clock(Int(seconds.rounded()))
+    }
 }
 
 /// Carátula del tema actual, con placeholder cuando no hay imagen.
@@ -106,8 +111,7 @@ struct IslandSlider: View {
 
     var body: some View {
         GeometryReader { geo in
-            let span = range.upperBound - range.lowerBound
-            let fraction = span > 0 ? (value - range.lowerBound) / span : 0
+            let fraction = SliderMath.fraction(of: value, in: range)
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.white.opacity(0.16))
                 Capsule().fill(tint.opacity(0.9))
@@ -120,8 +124,7 @@ struct IslandSlider: View {
                 DragGesture(minimumDistance: 0)
                     .onChanged { g in
                         if !dragging { dragging = true; onEditingChanged?(true) }
-                        let f = min(1, max(0, g.location.x / geo.size.width))
-                        value = range.lowerBound + f * span
+                        value = SliderMath.value(atX: g.location.x, width: geo.size.width, in: range)
                     }
                     .onEnded { _ in
                         dragging = false
@@ -159,5 +162,25 @@ struct CircleButton: View {
         .scaleEffect(hovering ? 1.06 : 1)
         .animation(.easeOut(duration: 0.12), value: hovering)
         .onHover { hovering = $0 }
+    }
+}
+
+
+/// Conversión entre el valor de un slider y su posición en pantalla. Aparte de
+/// la vista porque es lo que se nota torcido al arrastrar la barra de la canción.
+enum SliderMath {
+    /// Qué fracción del recorrido ocupa un valor. Un rango degenerado da 0 en
+    /// vez de dividir por cero.
+    static func fraction(of value: Double, in range: ClosedRange<Double>) -> Double {
+        let span = range.upperBound - range.lowerBound
+        guard span > 0 else { return 0 }
+        return (value - range.lowerBound) / span
+    }
+
+    /// El valor que corresponde a un punto del recorrido, acotado a los extremos.
+    static func value(atX x: CGFloat, width: CGFloat, in range: ClosedRange<Double>) -> Double {
+        guard width > 0 else { return range.lowerBound }
+        let f = min(1, max(0, Double(x / width)))
+        return range.lowerBound + f * (range.upperBound - range.lowerBound)
     }
 }

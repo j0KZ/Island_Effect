@@ -8,8 +8,6 @@ import Testing
 /// cada modelo se crea con `makeViewModel()`, que fija las preferencias que
 /// intervienen en los cálculos y desactiva lo que tocaría el sistema
 /// (háptica y consultas por AppleScript a los reproductores).
-/// Se ejecutan en serie porque `Prefs.shared` es compartido.
-@Suite(.serialized)
 @MainActor
 struct NotchViewModelTests {
 
@@ -18,18 +16,17 @@ struct NotchViewModelTests {
     static let notch = CGSize(width: 185, height: 32)
 
     private static func makeViewModel(hasNotch: Bool = true) -> NotchViewModel {
-        let prefs = Prefs.shared
-        prefs.expandedWidth = 620
-        prefs.expandedHeight = 200
-        prefs.extraClosedWidth = 0
-        // Nada de hardware ni de procesos externos durante las pruebas.
+        // Preferencias propias en un dominio desechable: ni se leen ni se pisan
+        // las del usuario. Y el sondeo de la canción se reemplaza por nada, para
+        // que abrir la isla en una prueba no lance un `osascript`.
+        let suite = "notch-tests-\(UUID().uuidString)"
+        UserDefaults().removePersistentDomain(forName: suite)
+        let prefs = Prefs(defaults: UserDefaults(suiteName: suite)!)
         prefs.haptics = false
-        prefs.useAppleMusic = false
-        prefs.useSpotify = false
 
         let screen = NSScreen.main ?? NSScreen.screens[0]
         let metrics = ScreenMetrics(screen: screen, hasNotch: hasNotch, notchSize: notch)
-        return NotchViewModel(metrics: metrics)
+        return NotchViewModel(metrics: metrics, prefs: prefs, setNeedsProgress: { _ in })
     }
 
     /// Ancho de la columna del notch en reposo, tal como lo define el modelo.
@@ -187,5 +184,54 @@ struct NotchViewModelTests {
         vm.open()
         #expect(vm.isOpen)
         #expect(vm.isPinned)
+    }
+
+    // MARK: - Duración de las live activities
+
+    @Test("La píldora dura lo que diga Preferencias")
+    func activityUsesConfiguredDuration() {
+        // El slider "Duración" existía pero no lo usaba nadie: todos los avisos
+        // pasaban su propia duración fija.
+        let vm = Self.makeViewModel()
+        vm.prefs.activityDuration = 4.5
+        vm.show(.battery(percent: 50, plugged: true, charging: true))
+        #expect(vm.activityDuration == 4.5)
+    }
+
+    @Test("Un aviso puede pedir una duración propia")
+    func activityCanOverrideDuration() {
+        let vm = Self.makeViewModel()
+        vm.prefs.activityDuration = 4.5
+        vm.show(.music(title: "Song", subtitle: "Artist", playing: false), duration: 1.5)
+        #expect(vm.activityDuration == 1.5)
+    }
+
+    @Test("Un temporizador viejo no se lleva por delante una píldora nueva")
+    func dismissOnlyRemovesItsOwnActivity() {
+        let vm = Self.makeViewModel()
+        let vieja = LiveActivity.music(title: "Vieja", subtitle: "Artista", playing: true)
+        vm.show(vieja)
+        vm.show(.battery(percent: 20, plugged: false, charging: false))
+
+        vm.dismissActivity(vieja)          // llega tarde el temporizador de la anterior
+
+        #expect(vm.activity == .battery(percent: 20, plugged: false, charging: false))
+    }
+
+    @Test("El temporizador propio sí la retira")
+    func dismissRemovesCurrentActivity() {
+        let vm = Self.makeViewModel()
+        let actual = LiveActivity.battery(percent: 20, plugged: false, charging: false)
+        vm.show(actual)
+        vm.dismissActivity(actual)
+        #expect(vm.activity == nil)
+    }
+
+    @Test("Esconder a la fuerza deja la isla limpia")
+    func hideImmediately() {
+        let vm = Self.makeViewModel()
+        vm.show(.music(title: "Song", subtitle: "Artist", playing: true))
+        vm.hideActivityImmediately()
+        #expect(vm.activity == nil)
     }
 }
