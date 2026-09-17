@@ -6,9 +6,17 @@ import UniformTypeIdentifiers
 
 struct RootView: View {
     @ObservedObject var vm: NotchViewModel
-    @ObservedObject var prefs = Prefs.shared
+    /// Las del modelo, no `Prefs.shared`. Con el singleton clavado aquí, una
+    /// vista previa o una prueba que le diera otras preferencias al modelo veía
+    /// la isla dibujarse con unas y medirse con otras.
+    @ObservedObject private var prefs: Prefs
     @ObservedObject private var media = MediaManager.shared
     @State private var dropTargeted = false
+
+    init(vm: NotchViewModel) {
+        self.vm = vm
+        _prefs = ObservedObject(wrappedValue: vm.prefs)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -414,26 +422,74 @@ struct ScreenshotThumb: View {
 
 // MARK: - Estado abierto
 
+/// Cuánto sitio deja el panel abierto y qué cabe dentro.
+///
+/// Vive fuera de las vistas porque los cortes se decidían dentro de tres
+/// `GeometryReader` distintos —la ficha del reproductor, el estado sin música y
+/// el aviso de permiso— y solo el primero los aplicaba. En el panel más bajo
+/// que permite Preferencias, los otros dos se salían por abajo y lo único
+/// accionable de la pantalla quedaba cortado por el borde de la isla.
+enum PanelLayout {
+    /// La cabecera y los márgenes se encogen con el panel bajo.
+    static func chromeIsCompact(panelHeight: CGFloat) -> Bool { panelHeight < 150 }
+
+    static func headerHeight(panelHeight: CGFloat) -> CGFloat {
+        chromeIsCompact(panelHeight: panelHeight) ? 24 : 30
+    }
+
+    static func contentPadding(panelHeight: CGFloat) -> (horizontal: CGFloat, vertical: CGFloat) {
+        chromeIsCompact(panelHeight: panelHeight) ? (10, 7) : (14, 12)
+    }
+
+    /// Lo que le queda al contenido después de la cabecera, el divisor y los
+    /// márgenes de arriba y abajo.
+    static func contentHeight(panelHeight: CGFloat) -> CGFloat {
+        let divisor: CGFloat = 1
+        return panelHeight - headerHeight(panelHeight: panelHeight) - divisor
+            - 2 * contentPadding(panelHeight: panelHeight).vertical
+    }
+
+    /// Qué densidad cabe en ese hueco.
+    enum Density: Equatable {
+        /// Todo: ilustración, título, explicación y botones.
+        case full
+        /// Sin la explicación, y lo demás más chico.
+        case compact
+        /// Solo lo accionable: el título y los botones.
+        case tiny
+
+        var isCompact: Bool { self != .full }
+        var isTiny: Bool { self == .tiny }
+    }
+
+    static func density(contentHeight: CGFloat) -> Density {
+        if contentHeight < 88 { return .tiny }
+        if contentHeight < 120 { return .compact }
+        return .full
+    }
+}
+
 struct OpenView: View {
     @ObservedObject var vm: NotchViewModel
-    @ObservedObject var prefs = Prefs.shared
+    @ObservedObject private var prefs: Prefs
+
+    init(vm: NotchViewModel) {
+        self.vm = vm
+        _prefs = ObservedObject(wrappedValue: vm.prefs)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             header
-                .frame(height: compact ? 24 : 30)
+                .frame(height: PanelLayout.headerHeight(panelHeight: prefs.expandedHeight))
             Divider().overlay(Color.white.opacity(0.08))
             body(for: currentTab)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.horizontal, compact ? 10 : 14)
-                .padding(.vertical, compact ? 7 : 12)
+                .padding(.horizontal, PanelLayout.contentPadding(panelHeight: prefs.expandedHeight).horizontal)
+                .padding(.vertical, PanelLayout.contentPadding(panelHeight: prefs.expandedHeight).vertical)
         }
         .foregroundStyle(.white)
     }
-
-    /// Con el panel bajo, cabecera y márgenes se encogen para dejarle sitio
-    /// al contenido.
-    private var compact: Bool { prefs.expandedHeight < 150 }
 
     /// Si la pestaña activa se desactivó en Preferencias, caemos en la primera
     /// disponible en vez de mostrar algo que ya no existe.

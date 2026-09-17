@@ -36,11 +36,12 @@ struct MusicView: View {
 
     private var player: some View {
         GeometryReader { geo in
-            let h = geo.size.height
             // El panel se puede achicar bastante: por debajo de cierto alto la
             // ficha se compacta en vez de reventar el layout.
-            let compact = h < 120
-            let tiny = h < 88
+            let h = geo.size.height
+            let density = PanelLayout.density(contentHeight: h)
+            let compact = density.isCompact
+            let tiny = density.isTiny
             // Nunca mayor que el alto disponible: si no, empuja el resto fuera.
             let art = min(h, max(36, geo.size.width * 0.34))
             let playSize: CGFloat = compact ? 30 : 40
@@ -168,44 +169,68 @@ struct MusicView: View {
         }
     }
 
+    /// Los dos estados sin música se compactan igual que la ficha del
+    /// reproductor. Antes no lo hacían, y en un panel bajo —el mínimo son 96
+    /// puntos— los botones quedaban cortados por el borde de la isla: lo único
+    /// accionable de la pantalla era justo lo que no se veía.
     private var permissionHint: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "lock.shield")
-                .font(.system(size: 22, weight: .light))
-                .foregroundStyle(.orange)
-            Text("Automation permission missing")
-                .font(.system(size: 13, weight: .medium))
-            Text("System Settings › Privacy & Security › Automation\nEnable Music and Spotify for Island Effect.")
-                .font(.system(size: 11))
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.white.opacity(0.5))
-            HStack(spacing: 8) {
-                Button("Open Settings") { media.openAutomationSettings() }
-                    .buttonStyle(PillButtonStyle())
-                Button("Retry") { media.retryAfterPermissionChange() }
-                    .buttonStyle(PillButtonStyle())
+        GeometryReader { geo in
+            let density = PanelLayout.density(contentHeight: geo.size.height)
+            let compact = density.isCompact
+            let tiny = density.isTiny
+            VStack(spacing: tiny ? 4 : 8) {
+                if !tiny {
+                    Image(systemName: "lock.shield")
+                        .font(.system(size: compact ? 17 : 22, weight: .light))
+                        .foregroundStyle(.orange)
+                }
+                Text("Automation permission missing")
+                    .font(.system(size: compact ? 12 : 13, weight: .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                if !compact {
+                    Text("System Settings › Privacy & Security › Automation\nEnable Music and Spotify for Island Effect.")
+                        .font(.system(size: 11))
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+                HStack(spacing: 8) {
+                    Button("Open Settings") { media.openAutomationSettings() }
+                        .buttonStyle(PillButtonStyle())
+                    Button("Retry") { media.retryAfterPermissionChange() }
+                        .buttonStyle(PillButtonStyle())
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var emptyState: some View {
-        VStack(spacing: 8) {
-            EqualizerBars(active: false, tint: .white.opacity(0.35))
-                .frame(width: 34, height: 20)
-            Text("Nothing playing")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.white.opacity(0.7))
-            Text("Open Music or Spotify and it will show up here")
-                .font(.system(size: 11))
-                .foregroundStyle(.white.opacity(0.4))
-            HStack(spacing: 8) {
-                launchButton(name: "Music", bundle: "com.apple.Music")
-                launchButton(name: "Spotify", bundle: "com.spotify.client")
+        GeometryReader { geo in
+            let density = PanelLayout.density(contentHeight: geo.size.height)
+            let compact = density.isCompact
+            let tiny = density.isTiny
+            VStack(spacing: tiny ? 4 : 8) {
+                if !tiny {
+                    EqualizerBars(active: false, tint: .white.opacity(0.35))
+                        .frame(width: compact ? 26 : 34, height: compact ? 15 : 20)
+                }
+                Text("Nothing playing")
+                    .font(.system(size: compact ? 12 : 13, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.7))
+                if !compact {
+                    Text("Open Music or Spotify and it will show up here")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.4))
+                }
+                HStack(spacing: 8) {
+                    launchButton(name: "Music", bundle: "com.apple.Music")
+                    launchButton(name: "Spotify", bundle: "com.spotify.client")
+                }
+                .padding(.top, compact ? 0 : 2)
             }
-            .padding(.top, 2)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @ViewBuilder

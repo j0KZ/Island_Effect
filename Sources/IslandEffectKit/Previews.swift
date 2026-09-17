@@ -6,10 +6,18 @@ import AppKit
 // Van sobre fondo negro porque la isla se dibuja siempre sobre el notch.
 
 @MainActor
-private func previewModel(open: Bool, tab: NotchTab = .music, activity: LiveActivity? = nil) -> NotchViewModel {
+private func previewModel(open: Bool, tab: NotchTab = .music, activity: LiveActivity? = nil,
+                          height: Double? = nil) -> NotchViewModel {
     let screen = NSScreen.main ?? NSScreen.screens[0]
+    // Preferencias desechables: una vista previa que toque `Prefs.shared` le
+    // cambiaría los ajustes a quien esté usando la app.
+    let suite = "island-previews-\(UUID().uuidString)"
+    let prefs = Prefs(defaults: UserDefaults(suiteName: suite) ?? .standard)
+    if let height { prefs.expandedHeight = height }
     let vm = NotchViewModel(metrics: ScreenMetrics(screen: screen, hasNotch: true,
-                                                   notchSize: CGSize(width: 185, height: 32)))
+                                                   notchSize: CGSize(width: 185, height: 32)),
+                            prefs: prefs,
+                            setNeedsProgress: { _ in })
     vm.isOpen = open
     vm.tab = tab
     vm.activity = activity
@@ -48,6 +56,14 @@ private func previewModel(open: Bool, tab: NotchTab = .music, activity: LiveActi
 #Preview("Isla abierta · Estante") {
     RootView(vm: previewModel(open: true, tab: .shelf))
         .frame(width: 600, height: 260)
+        .background(.black)
+}
+
+#Preview("Isla abierta · Sin música, panel bajo") {
+    // El alto mínimo que deja Preferencias. Es donde se veía el corte: los
+    // botones de Música y Spotify quedaban fuera de la isla.
+    RootView(vm: previewModel(open: true, tab: .music, height: 100))
+        .frame(width: 600, height: 180)
         .background(.black)
 }
 
