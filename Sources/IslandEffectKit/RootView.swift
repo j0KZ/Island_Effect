@@ -155,10 +155,7 @@ struct RootView: View {
 
     /// Intensidad del contorno según el estado: siempre visible, un poco más al pasar el mouse.
     private var rimStrength: Double {
-        let base = max(0, min(1, prefs.rimOpacity))
-        if vm.isOpen { return base }
-        if vm.isHovering { return min(1, base * 1.25) }
-        return base * 0.9
+        IslandVisuals.rimStrength(base: prefs.rimOpacity, isOpen: vm.isOpen, isHovering: vm.isHovering)
     }
 
     /// Blanco especular: tenue arriba, intenso en el borde inferior (luz cenital).
@@ -300,7 +297,7 @@ struct ActivityBar: View {
                     .lineLimit(1)
             }
         case .battery(let percent, let plugged, let charging):
-            Text(charging ? "Charging" : (plugged ? "Plugged in" : "On battery"))
+            Text(LocalizedStringKey(LiveActivity.batteryLabel(plugged: plugged, charging: charging)))
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.white.opacity(0.75))
                 .lineLimit(1)
@@ -360,16 +357,11 @@ struct OpenView: View {
     /// Si la pestaña activa se desactivó en Preferencias, caemos en la primera
     /// disponible en vez de mostrar algo que ya no existe.
     private var currentTab: NotchTab {
-        availableTabs.contains(vm.tab) ? vm.tab : (availableTabs.first ?? .music)
+        NotchTab.resolve(vm.tab, available: availableTabs)
     }
 
     private var availableTabs: [NotchTab] {
-        NotchTab.allCases.filter {
-            switch $0 {
-            case .music: return prefs.enableMusic
-            case .shelf: return prefs.enableShelf
-            }
-        }
+        NotchTab.available(music: prefs.enableMusic, shelf: prefs.enableShelf)
     }
 
     private var header: some View {
@@ -427,5 +419,18 @@ struct TabButton: View {
         .foregroundStyle(selected ? .white : .white.opacity(0.5))
         .onHover { hovering = $0 }
         .help(tab.title)
+    }
+}
+
+
+/// Cálculos de apariencia que no dependen de SwiftUI, aparte para poder probarlos.
+enum IslandVisuals {
+    /// Intensidad del contorno: el ajuste del usuario acotado a 0…1, un 25 % más
+    /// al pasar el mouse y un 10 % menos en reposo.
+    static func rimStrength(base: Double, isOpen: Bool, isHovering: Bool) -> Double {
+        let base = max(0, min(1, base))
+        if isOpen { return base }
+        if isHovering { return min(1, base * 1.25) }
+        return base * 0.9
     }
 }

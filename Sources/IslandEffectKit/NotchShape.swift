@@ -17,7 +17,9 @@ struct NotchShape: Shape {
     }
 
     func path(in rect: CGRect) -> Path {
-        let tr = min(topRadius, rect.width / 4)
+        // Los radios se acotan también por la altura: si no, en un marco bajo la
+        // curva superior baja más que el propio marco y el trazo se desborda.
+        let tr = min(topRadius, rect.width / 4, rect.height / 2)
         let br = min(bottomRadius, rect.width / 4, rect.height / 2)
         var p = Path()
         p.move(to: CGPoint(x: rect.minX, y: rect.minY))
@@ -74,7 +76,7 @@ struct IslandShape: Shape {
         let spread = max(0, (boardW - nw) / 2)
         // Cuánto "board" hay: modula el paso de esquina convexa a filete cóncavo.
         let t = min(1, spread / 40)
-        let tr = min(topRadius, nw / 4)
+        let tr = min(topRadius, nw / 4, nh / 2)
         let f = min(fillet, spread) * t
         let rc = notchBottomRadius * (1 - t)
         let br = min(boardRadius, boardW / 2, bh / 2)

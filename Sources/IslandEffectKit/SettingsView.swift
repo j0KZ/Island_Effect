@@ -76,7 +76,10 @@ struct SettingsView: View {
     private var modules: some View {
         Form {
             Section("Player") {
+                // El último módulo encendido no se puede apagar: sin ninguno,
+                // la isla abierta no tendría nada que mostrar.
                 Toggle("Music", isOn: $prefs.enableMusic)
+                    .disabled(prefs.enableMusic && !prefs.enableShelf)
                 Toggle("Read Spotify", isOn: $prefs.useSpotify)
                     .disabled(!prefs.enableMusic)
                 Toggle("Read Apple Music", isOn: $prefs.useAppleMusic)
@@ -87,6 +90,7 @@ struct SettingsView: View {
             }
             Section("Shelf") {
                 Toggle("File shelf", isOn: $prefs.enableShelf)
+                    .disabled(prefs.enableShelf && !prefs.enableMusic)
                 Text("A pocket: drop files onto the notch and drag them back out wherever you need them.")
                     .font(.caption)
                     .foregroundStyle(.secondary)

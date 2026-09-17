@@ -17,12 +17,30 @@ enum NotchTab: String, CaseIterable, Identifiable {
         case .shelf: return String(localized: "Shelf")
         }
     }
+
+    /// Las pestañas que el usuario dejó activadas, en su orden natural.
+    static func available(music: Bool, shelf: Bool) -> [NotchTab] {
+        allCases.filter { $0 == .music ? music : shelf }
+    }
+
+    /// Si la pestaña activa se desactivó en Preferencias, se cae en la primera
+    /// disponible. Con ninguna disponible se queda la que había: Preferencias no
+    /// deja apagar las dos, así que esto es solo una red de seguridad.
+    static func resolve(_ tab: NotchTab, available: [NotchTab]) -> NotchTab {
+        available.contains(tab) ? tab : (available.first ?? tab)
+    }
 }
 
 enum LiveActivity: Equatable {
     case music(title: String, subtitle: String, playing: Bool)
     case battery(percent: Int, plugged: Bool, charging: Bool)
 
+    /// El texto de la píldora de batería. Vive aquí porque lo usan tanto la
+    /// vista como el cálculo del ancho: si cada una tuviera el suyo, al cambiar
+    /// uno la píldora dejaría de cuadrar con lo que dice.
+    static func batteryLabel(plugged: Bool, charging: Bool) -> String {
+        charging ? "Charging" : (plugged ? "Plugged in" : "On battery")
+    }
 }
 
 /// Estado de la isla: cerrada, en hover, o abierta.
@@ -36,10 +54,17 @@ final class NotchViewModel: ObservableObject {
     @Published var metrics: ScreenMetrics
 
     private var activityDismiss: Timer?
-    let prefs = Prefs.shared
+    let prefs: Prefs
+    /// Avisa de cuándo hace falta sondear la posición de la canción (solo con la
+    /// isla abierta). Se recibe para que las pruebas no arrastren al reproductor.
+    private let setNeedsProgress: (Bool) -> Void
 
-    init(metrics: ScreenMetrics) {
+    init(metrics: ScreenMetrics,
+         prefs: Prefs = .shared,
+         setNeedsProgress: @escaping (Bool) -> Void = { MediaManager.shared.setNeedsProgress($0) }) {
         self.metrics = metrics
+        self.prefs = prefs
+        self.setNeedsProgress = setNeedsProgress
     }
 
     // MARK: - Tamaños
@@ -83,7 +108,7 @@ final class NotchViewModel: ObservableObject {
             // 20 de márgenes + 24 carátula + 40 (ecualizador y tiempo) + huecos
             return CGSize(width: clampWidth(122 + text), height: 48)
         case .battery(let percent, let plugged, let charging):
-            let label = charging ? "Charging" : (plugged ? "Plugged in" : "On battery")
+            let label = LiveActivity.batteryLabel(plugged: plugged, charging: charging)
             let text = textWidth(label, size: 11, weight: .medium)
                 + textWidth(" \(percent) %", size: 11, weight: .semibold)
             return CGSize(width: clampWidth(86 + text), height: 30)
@@ -120,7 +145,7 @@ final class NotchViewModel: ObservableObject {
     func open() {
         guard !isOpen else { return }
         isOpen = true
-        MediaManager.shared.setNeedsProgress(true)
+        setNeedsProgress(true)
         IslandDebug.log("open (tab: \(tab.rawValue))")
         hideActivityImmediately()
         haptic()
@@ -131,7 +156,7 @@ final class NotchViewModel: ObservableObject {
         if isPinned && !force { return }
         isOpen = false
         isPinned = false
-        MediaManager.shared.setNeedsProgress(false)
+        setNeedsProgress(false)
         IslandDebug.log("close")
         haptic()
     }
@@ -147,18 +172,25 @@ final class NotchViewModel: ObservableObject {
 
     // MARK: - Live activities
 
+    /// Cuántos segundos se programó la píldora que está en pantalla. Sin ella no
+    /// habría cómo comprobar que la duración de Preferencias se respeta.
+    private(set) var activityDuration: Double?
+
     func show(_ activity: LiveActivity, duration: Double? = nil) {
         guard !isOpen else { return }
         IslandDebug.log("activity: \(activity)")
         self.activity = activity
         activityDismiss?.invalidate()
         let seconds = duration ?? prefs.activityDuration
+        activityDuration = seconds
         activityDismiss = Timer.scheduledTimer(withTimeInterval: seconds, repeats: false) { [weak self] _ in
             Task { @MainActor in self?.dismissActivity(activity) }
         }
     }
 
-    private func dismissActivity(_ which: LiveActivity) {
+    /// Solo borra si sigue siendo la misma actividad: un temporizador viejo no
+    /// puede llevarse por delante una píldora que acaba de aparecer.
+    func dismissActivity(_ which: LiveActivity) {
         guard activity == which else { return }
         withAnimation(.island) { activity = nil }
     }
