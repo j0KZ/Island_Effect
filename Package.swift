@@ -23,6 +23,12 @@ let package = Package(
             dependencies: ["IslandEffectKit"],
             path: "Sources/IslandEffect",
             swiftSettings: [.swiftLanguageMode(.v5)]
+        ),
+        .testTarget(
+            name: "IslandEffectKitTests",
+            dependencies: ["IslandEffectKit"],
+            path: "Tests/IslandEffectKitTests",
+            swiftSettings: [.swiftLanguageMode(.v5)]
         )
     ]
 )
