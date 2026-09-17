@@ -25,10 +25,16 @@ struct ShelfItem: Identifiable, Equatable {
 final class ShelfStore: ObservableObject {
     static let shared = ShelfStore()
     private let key = "shelfBookmarks"
+    private let defaults: UserDefaults
 
     @Published private(set) var items: [ShelfItem] = []
 
-    private init() { load() }
+    /// Dónde se guarda la repisa. Se recibe para que las pruebas usen un dominio
+    /// aparte y no toquen la repisa de verdad.
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        load()
+    }
 
     func add(urls: [URL]) {
         var added = false
@@ -76,11 +82,11 @@ final class ShelfStore: ObservableObject {
 
     private func save() {
         let paths = items.map { $0.url.path }
-        UserDefaults.standard.set(paths, forKey: key)
+        defaults.set(paths, forKey: key)
     }
 
     private func load() {
-        guard let paths = UserDefaults.standard.stringArray(forKey: key) else { return }
+        guard let paths = defaults.stringArray(forKey: key) else { return }
         items = paths
             .filter { FileManager.default.fileExists(atPath: $0) }
             .map { ShelfItem(url: URL(fileURLWithPath: $0)) }

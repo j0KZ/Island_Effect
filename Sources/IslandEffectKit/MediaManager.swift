@@ -139,27 +139,10 @@ final class MediaManager: ObservableObject {
             return
         }
 
-        var np = NowPlaying()
-        np.app = app
-        np.isPlaying = state == "Playing"
-        np.title = userInfo["Name"] as? String ?? ""
-        np.artist = userInfo["Artist"] as? String ?? ""
-        np.album = userInfo["Album"] as? String ?? ""
-        switch app {
-        case .spotify:
-            np.duration = (userInfo["Duration"] as? Double ?? 0) / 1000
-            np.elapsed = userInfo["Playback Position"] as? Double ?? 0
-            np.trackKey = userInfo["Track ID"] as? String ?? (np.title + np.artist)
-        case .music:
-            np.duration = (userInfo["Total Time"] as? Double ?? 0) / 1000
-            // playerInfo no trae la posición; si es la misma pista, conservamos
-            // la estimación que ya teníamos.
-            let key = String(describing: userInfo["PersistentID"] ?? (np.title + np.artist))
-            np.trackKey = key
-            np.elapsed = key == info.trackKey ? estimatedElapsed : 0
-        case .none:
-            return
-        }
+        guard var np = Self.nowPlaying(fromNotification: userInfo, app: app) else { return }
+        // `playerInfo` de Música no trae la posición; si es la misma pista,
+        // conservamos la estimación que ya teníamos.
+        if app == .music, np.trackKey == info.trackKey { np.elapsed = estimatedElapsed }
         guard !np.title.isEmpty else { return }
         if !sawNotification {
             sawNotification = true
@@ -328,7 +311,41 @@ final class MediaManager: ObservableObject {
         case .none:
             return nil
         }
-        guard let raw = runScript(script), !raw.isEmpty else { return nil }
+        guard let raw = runScript(script) else { return nil }
+        return Self.parse(raw, app: app)
+    }
+
+    /// Arma el `NowPlaying` con los metadatos que trae el aviso del reproductor.
+    /// La posición de Música queda en 0: ese aviso no la incluye y la decide quien
+    /// llama, según si la pista cambió o no.
+    static func nowPlaying(fromNotification userInfo: [AnyHashable: Any], app: MediaApp) -> NowPlaying? {
+        guard app != .none else { return nil }
+        let state = (userInfo["Player State"] as? String) ?? ""
+        var np = NowPlaying()
+        np.app = app
+        np.isPlaying = state == "Playing"
+        np.title = userInfo["Name"] as? String ?? ""
+        np.artist = userInfo["Artist"] as? String ?? ""
+        np.album = userInfo["Album"] as? String ?? ""
+        switch app {
+        case .spotify:
+            np.duration = (userInfo["Duration"] as? Double ?? 0) / 1000
+            np.elapsed = userInfo["Playback Position"] as? Double ?? 0
+            np.trackKey = userInfo["Track ID"] as? String ?? (np.title + np.artist)
+        case .music:
+            np.duration = (userInfo["Total Time"] as? Double ?? 0) / 1000
+            np.trackKey = String(describing: userInfo["PersistentID"] ?? (np.title + np.artist))
+        case .none:
+            return nil
+        }
+        return np
+    }
+
+    /// Convierte la línea del AppleScript (campos separados por tabulador) en un
+    /// `NowPlaying`. Los números vienen con el separador decimal del sistema, así
+    /// que la coma se pasa a punto antes de leerlos.
+    static func parse(_ raw: String, app: MediaApp) -> NowPlaying? {
+        guard !raw.isEmpty else { return nil }
         let parts = raw.components(separatedBy: "\t")
         guard parts.count >= 8 else { return nil }
         var np = NowPlaying()
