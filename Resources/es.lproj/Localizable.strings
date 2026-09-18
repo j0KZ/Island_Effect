@@ -3,11 +3,13 @@
    macOS cae al propio inglés. */
 "%lld file" = "%lld archivo";
 "%lld files" = "%lld archivos";
+"20 %" = "20 %";
 "A pocket: drop files onto the notch and drag them back out wherever you need them." = "Un bolsillo: sueltas archivos sobre el notch y los vuelves a arrastrar a donde los necesites.";
 "About" = "Acerca de";
 "Appearance" = "Apariencia";
 "Automation permission missing" = "Falta el permiso de Automatización";
 "Battery charging" = "Carga de batería";
+"CPU, memory, GPU, and what the battery is actually spending right now in watts — a number macOS shows nowhere. It only samples while you are looking at it." = "CPU, memoria, GPU y lo que la batería está gastando ahora mismo en watts, un número que macOS no muestra en ninguna parte. Solo mide mientras lo estás mirando.";
 "Charging" = "Cargando";
 "Click the notch: it stays open; click again to close" = "Clic en el notch: la deja abierta; otro clic la cierra";
 "Copy all" = "Copiar todo";
@@ -26,6 +28,7 @@
 "Keep on the shelf" = "Dejar en la repisa";
 "Keep open" = "Mantener abierto";
 "Leaves the shelf soon" = "Se va de la repisa pronto";
+"Memory" = "Memoria";
 "Menu bar icon" = "Ícono en la barra de menús";
 "Modules" = "Módulos";
 "Music" = "Música";
@@ -60,7 +63,9 @@
 "Screenshots take about five seconds to show up" = "Las capturas tardan unos cinco segundos en aparecer";
 "Shelf" = "Repisa";
 "Show in Finder" = "Mostrar en Finder";
+"Stats" = "Estadísticas";
 "System Settings › Privacy & Security › Automation\\nEnable Music and Spotify for Island Effect." = "Ajustes del Sistema › Privacidad y seguridad › Automatización\\nActiva Música y Spotify para Island Effect.";
+"System stats" = "Estadísticas del sistema";
 "The macOS thumbnail is off, so screenshots appear immediately." = "La miniatura de macOS está apagada: las capturas aparecen al instante.";
 "They leave after" = "Se van a los";
 "They stay here, ready to drag wherever you want" = "Quedan acá listos para arrastrarlos a donde quieras";
@@ -75,7 +80,12 @@
 "Version" = "Versión";
 "Vertical scroll over the notch = volume" = "Scroll vertical sobre el notch = volumen";
 "Volume and brightness are not shown: macOS already shows its own." = "Volumen y brillo no aparecen: macOS ya muestra los suyos.";
+"charging" = "cargando";
+"cycles" = "ciclos";
+"empty" = "se agota";
 "file" = "archivo";
 "files" = "archivos";
 "macOS already shows a thumbnail in the corner, but it lasts five seconds. This one waits for you, and clears itself once you use it." = "macOS ya muestra una miniatura en la esquina, pero dura cinco segundos. Esta te espera, y se borra sola en cuanto la usas.";
 "macOS only writes the file once its own thumbnail goes away, so both show up. Turn that thumbnail off and the island takes over, immediately." = "macOS no escribe el archivo hasta que su propia miniatura desaparece, así que salen las dos. Apagándola, la isla toma el relevo y aparece al toque.";
+"plugged in" = "enchufado";
+"right now" = "ahora mismo";

@@ -3,11 +3,13 @@
    macOS cae al propio inglés. */
 "%lld file" = "%lld file";
 "%lld files" = "%lld files";
+"20 %" = "20 %";
 "A pocket: drop files onto the notch and drag them back out wherever you need them." = "A pocket: drop files onto the notch and drag them back out wherever you need them.";
 "About" = "About";
 "Appearance" = "Appearance";
 "Automation permission missing" = "Automation permission missing";
 "Battery charging" = "Battery charging";
+"CPU, memory, GPU, and what the battery is actually spending right now in watts — a number macOS shows nowhere. It only samples while you are looking at it." = "CPU, memory, GPU, and what the battery is actually spending right now in watts — a number macOS shows nowhere. It only samples while you are looking at it.";
 "Charging" = "Charging";
 "Click the notch: it stays open; click again to close" = "Click the notch: it stays open; click again to close";
 "Copy all" = "Copy all";
@@ -26,6 +28,7 @@
 "Keep on the shelf" = "Keep on the shelf";
 "Keep open" = "Keep open";
 "Leaves the shelf soon" = "Leaves the shelf soon";
+"Memory" = "Memory";
 "Menu bar icon" = "Menu bar icon";
 "Modules" = "Modules";
 "Music" = "Music";
@@ -60,7 +63,9 @@
 "Screenshots take about five seconds to show up" = "Screenshots take about five seconds to show up";
 "Shelf" = "Shelf";
 "Show in Finder" = "Show in Finder";
+"Stats" = "Stats";
 "System Settings › Privacy & Security › Automation\\nEnable Music and Spotify for Island Effect." = "System Settings › Privacy & Security › Automation\\nEnable Music and Spotify for Island Effect.";
+"System stats" = "System stats";
 "The macOS thumbnail is off, so screenshots appear immediately." = "The macOS thumbnail is off, so screenshots appear immediately.";
 "They leave after" = "They leave after";
 "They stay here, ready to drag wherever you want" = "They stay here, ready to drag wherever you want";
@@ -75,7 +80,12 @@
 "Version" = "Version";
 "Vertical scroll over the notch = volume" = "Vertical scroll over the notch = volume";
 "Volume and brightness are not shown: macOS already shows its own." = "Volume and brightness are not shown: macOS already shows its own.";
+"charging" = "charging";
+"cycles" = "cycles";
+"empty" = "empty";
 "file" = "file";
 "files" = "files";
 "macOS already shows a thumbnail in the corner, but it lasts five seconds. This one waits for you, and clears itself once you use it." = "macOS already shows a thumbnail in the corner, but it lasts five seconds. This one waits for you, and clears itself once you use it.";
 "macOS only writes the file once its own thumbnail goes away, so both show up. Turn that thumbnail off and the island takes over, immediately." = "macOS only writes the file once its own thumbnail goes away, so both show up. Turn that thumbnail off and the island takes over, immediately.";
+"plugged in" = "plugged in";
+"right now" = "right now";

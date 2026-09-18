@@ -3,24 +3,42 @@ import SwiftUI
 import Combine
 
 enum NotchTab: String, CaseIterable, Identifiable {
-    case music, shelf
+    case music, shelf, stats
     var id: String { rawValue }
     var symbol: String {
         switch self {
         case .music: return "music.note"
         case .shelf: return "tray.full"
+        case .stats: return "gauge.with.dots.needle.33percent"
         }
     }
     var title: String {
         switch self {
         case .music: return String(localized: "Music")
         case .shelf: return String(localized: "Shelf")
+        case .stats: return String(localized: "Stats")
         }
     }
 
     /// Las pestañas que el usuario dejó activadas, en su orden natural.
-    static func available(music: Bool, shelf: Bool) -> [NotchTab] {
-        allCases.filter { $0 == .music ? music : shelf }
+    static func available(music: Bool, shelf: Bool, stats: Bool) -> [NotchTab] {
+        allCases.filter {
+            switch $0 {
+            case .music: return music
+            case .shelf: return shelf
+            case .stats: return stats
+            }
+        }
+    }
+
+    /// ¿Se puede apagar este módulo, o es el último que queda?
+    ///
+    /// Sin ninguno, la isla abierta no tendría nada que mostrar: un panel vacío
+    /// con una barra de pestañas vacía. Antes eran dos módulos y la regla se
+    /// escribía a mano en cada interruptor; con tres eso ya no cabía en la
+    /// cabeza de nadie.
+    static func canDisable(_ tab: NotchTab, music: Bool, shelf: Bool, stats: Bool) -> Bool {
+        available(music: music, shelf: shelf, stats: stats).contains { $0 != tab }
     }
 
     /// Si la pestaña activa se desactivó en Preferencias, se cae en la primera

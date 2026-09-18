@@ -524,7 +524,8 @@ struct OpenView: View {
     }
 
     private var availableTabs: [NotchTab] {
-        NotchTab.available(music: prefs.enableMusic, shelf: prefs.enableShelf)
+        NotchTab.available(music: prefs.enableMusic, shelf: prefs.enableShelf,
+                           stats: prefs.enableStats)
     }
 
     private var header: some View {
@@ -556,6 +557,7 @@ struct OpenView: View {
     @ViewBuilder
     private func body(for tab: NotchTab) -> some View {
         switch tab {
+        case .stats: StatsView(monitor: .shared)
         case .music: MusicView(vm: vm)
         case .shelf: ShelfView(vm: vm)
         }
