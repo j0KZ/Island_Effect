@@ -271,6 +271,7 @@ final class NotchController {
     /// porque llegó medio milisegundo antes sería peor que no decir nada.
     private func announceCapture(_ url: URL) {
         ShelfStore.shared.addCapture(url: url, ttl: prefs.captureMinutes * 60)
+        IslandDebug.log("captura -> repisa: \(ShelfStore.shared.items.count) ítem(s)")
         guard prefs.liveScreenshot else { return }
         let bytes = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
         let size = ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)

@@ -218,9 +218,15 @@ struct RootView: View {
         let group = DispatchGroup()
         for provider in providers {
             group.enter()
-            _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                if let url, url.isFileURL {
+            // `loadObject(ofClass: URL.self)` devolvía nada: el Finder no entrega
+            // un objeto URL, entrega los BYTES de `public.file-url`. Pedir el
+            // ítem crudo y convertirlo nosotros es lo que sí funciona.
+            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier) { item, error in
+                if let url = DroppedFile.url(from: item) {
                     lock.lock(); urls.append(url); lock.unlock()
+                } else {
+                    IslandDebug.log("drop: no se pudo leer la ruta de \(type(of: item)) "
+                                    + "(\(error?.localizedDescription ?? "sin error"))")
                 }
                 group.leave()
             }

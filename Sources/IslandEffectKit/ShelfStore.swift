@@ -189,3 +189,54 @@ final class ShelfStore: ObservableObject {
             .map { ShelfItem(url: URL(fileURLWithPath: $0)) }
     }
 }
+
+/// Sacar la ruta de lo que entrega un arrastre.
+///
+/// Existe porque la forma corta no servía. `NSItemProvider.loadObject(ofClass:
+/// URL.self)` devolvía `nil` con archivos arrastrados desde el Finder: el
+/// arrastre no lleva un objeto `URL`, lleva los **bytes** del tipo
+/// `public.file-url`. El archivo llegaba, se leían cero rutas y no pasaba nada,
+/// sin ningún error a la vista.
+///
+/// Los cuatro formatos son reales: `Data` es lo que manda el Finder, `URL` lo
+/// que mandan algunas apps de Cocoa, y el texto aparece cuando el origen
+/// escribió la ruta en vez de la URL.
+enum DroppedFile {
+
+    nonisolated static func url(from item: Any?) -> URL? {
+        switch item {
+        case let url as URL:
+            return usable(url)
+        case let data as Data:
+            // Primero como URL codificada; si no, como texto, que es lo que
+            // mandan los editores y algunos gestores de archivos.
+            if let url = URL(dataRepresentation: data, relativeTo: nil), let ok = usable(url) { return ok }
+            guard let text = String(data: data, encoding: .utf8) else { return nil }
+            return url(fromText: text)
+        case let text as String:
+            return url(fromText: text)
+        default:
+            return nil
+        }
+    }
+
+    /// Una ruta escrita a mano puede venir como `file:///…` o como `/Users/…`,
+    /// y con espacios sobrantes si salió de un campo de texto.
+    nonisolated static func url(fromText raw: String) -> URL? {
+        let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return nil }
+        if text.hasPrefix("file://") {
+            guard let url = URL(string: text) else { return nil }
+            return usable(url)
+        }
+        guard text.hasPrefix("/") || text.hasPrefix("~") else { return nil }
+        return usable(URL(fileURLWithPath: (text as NSString).expandingTildeInPath))
+    }
+
+    /// Solo archivos locales. Una URL de web arrastrada desde el navegador no es
+    /// algo que la repisa pueda guardar, y meterla dejaría una tarjeta muerta.
+    private nonisolated static func usable(_ url: URL) -> URL? {
+        guard url.isFileURL, !url.path.isEmpty else { return nil }
+        return url.standardizedFileURL
+    }
+}

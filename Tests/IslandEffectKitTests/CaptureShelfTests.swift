@@ -338,3 +338,87 @@ struct CaptureShelfTests {
         #expect(store.items.map(\.name) == ["mio.txt"])
     }
 }
+
+/// Sacar la ruta de un archivo arrastrado al notch.
+///
+/// Esto existe por un fallo que no daba ninguna señal: se arrastraba un archivo
+/// desde el Finder, el arrastre llegaba, y se leían cero rutas. La repisa se
+/// quedaba vacía y no había error ni en pantalla ni en consola. La causa era que
+/// `loadObject(ofClass: URL.self)` no sirve acá: el Finder manda los bytes de
+/// `public.file-url`, no un objeto `URL`.
+struct DroppedFileTests {
+
+    @Test("Lo que manda el Finder: los bytes de la URL")
+    func dataRepresentation() {
+        // Este es el caso que fallaba en la app.
+        let original = URL(fileURLWithPath: "/Users/quien/Documentos/informe.pdf")
+        let leida = DroppedFile.url(from: original.dataRepresentation)
+        #expect(leida?.path == "/Users/quien/Documentos/informe.pdf")
+    }
+
+    @Test("Un objeto URL también vale")
+    func plainURL() {
+        let original = URL(fileURLWithPath: "/tmp/algo.txt")
+        #expect(DroppedFile.url(from: original)?.path == "/tmp/algo.txt")
+    }
+
+    @Test("Una ruta escrita como texto")
+    func plainText() {
+        #expect(DroppedFile.url(from: "/tmp/algo.txt")?.path == "/tmp/algo.txt")
+        #expect(DroppedFile.url(from: "file:///tmp/algo.txt")?.path == "/tmp/algo.txt")
+    }
+
+    @Test("Los espacios de más no estorban")
+    func trimsWhitespace() {
+        // Un salto de línea final es lo normal cuando la ruta salió de un campo
+        // de texto o de la salida de un comando.
+        #expect(DroppedFile.url(from: "  /tmp/algo.txt\n")?.path == "/tmp/algo.txt")
+    }
+
+    @Test("La virgulilla se expande")
+    func tildeExpands() {
+        let url = DroppedFile.url(from: "~/Documentos/algo.txt")
+        #expect(url != nil)
+        #expect(!(url?.path.contains("~") ?? true))
+    }
+
+    @Test("Un archivo con espacios y acentos en el nombre")
+    func awkwardNames() {
+        // El porcentaje de codificación es justo donde se rompe convertir a mano.
+        let original = URL(fileURLWithPath: "/tmp/mi informe año 2026.pdf")
+        #expect(DroppedFile.url(from: original.dataRepresentation)?.path
+                == "/tmp/mi informe año 2026.pdf")
+    }
+
+    @Test("Un enlace de la web no entra en la repisa")
+    func webURLsAreRejected() {
+        // Arrastrar una pestaña del navegador dejaría una tarjeta muerta: el
+        // archivo no existe y no hay nada que volver a arrastrar.
+        let web = URL(string: "https://example.com/algo.pdf")!
+        #expect(DroppedFile.url(from: web) == nil)
+        #expect(DroppedFile.url(from: web.dataRepresentation) == nil)
+        #expect(DroppedFile.url(from: "https://example.com") == nil)
+    }
+
+    @Test("Un texto que no es una ruta no entra")
+    func randomTextIsRejected() {
+        #expect(DroppedFile.url(from: "hola qué tal") == nil)
+        #expect(DroppedFile.url(from: "") == nil)
+        #expect(DroppedFile.url(from: "   ") == nil)
+    }
+
+    @Test("Un ítem de un tipo que no conocemos no rompe nada")
+    func unknownItemTypes() {
+        #expect(DroppedFile.url(from: nil) == nil)
+        #expect(DroppedFile.url(from: 42) == nil)
+        #expect(DroppedFile.url(from: Data([0xFF, 0xFE, 0x00])) == nil)
+    }
+
+    @Test("La ruta queda normalizada")
+    func pathIsStandardized() {
+        // Sin esto, el mismo archivo podría entrar dos veces con dos rutas
+        // distintas: la repisa deduplica comparando URLs.
+        let raro = URL(fileURLWithPath: "/tmp/./algo.txt")
+        #expect(DroppedFile.url(from: raro)?.path == "/tmp/algo.txt")
+    }
+}
