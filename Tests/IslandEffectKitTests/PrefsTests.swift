@@ -33,6 +33,9 @@ struct PrefsTests {
         #expect(prefs.enableShelf)
         #expect(prefs.captureShelf)
         #expect(prefs.captureMinutes == 5)
+        // Cinco segundos: lo mismo que duraba la miniatura de macOS, que es lo
+        // que este aviso vino a reemplazar.
+        #expect(prefs.captureNoticeSeconds == 5)
         #expect(prefs.useAppleMusic)
         #expect(prefs.useSpotify)
         // Lo único que viene apagado: la app no se mete sola en el arranque.
@@ -67,6 +70,7 @@ struct PrefsTests {
         defaults.set(50.0, forKey: "hoverOpenDelay")
         defaults.set(0.0, forKey: "activityDuration")
         defaults.set(0.0, forKey: "captureMinutes")
+        defaults.set(0.0, forKey: "captureNoticeSeconds")
 
         let prefs = Prefs(defaults: defaults)
         #expect(prefs.expandedWidth == Prefs.Limits.expandedWidth.lowerBound)
@@ -76,6 +80,7 @@ struct PrefsTests {
         #expect(prefs.activityDuration == Prefs.Limits.activityDuration.lowerBound)
         // Con 0 minutos la captura caducaría antes de llegar a verse.
         #expect(prefs.captureMinutes == Prefs.Limits.captureMinutes.lowerBound)
+        #expect(prefs.captureNoticeSeconds == Prefs.Limits.captureNoticeSeconds.lowerBound)
     }
 
     @Test("Los valores de fábrica están dentro de los rangos que ofrece Preferencias")
@@ -89,6 +94,11 @@ struct PrefsTests {
         #expect(Prefs.Limits.hoverOpenDelay.contains(prefs.hoverOpenDelay))
         #expect(Prefs.Limits.activityDuration.contains(prefs.activityDuration))
         #expect(Prefs.Limits.captureMinutes.contains(prefs.captureMinutes))
+        #expect(Prefs.Limits.captureNoticeSeconds.contains(prefs.captureNoticeSeconds))
+        // El aviso de la captura tiene que poder durar más que los otros: es lo
+        // único que dice que existe, desde que no está la miniatura de macOS.
+        #expect(Prefs.Limits.captureNoticeSeconds.upperBound
+                > Prefs.Limits.activityDuration.upperBound)
     }
 
     @Test("Restablecer deja todo como recién instalado")

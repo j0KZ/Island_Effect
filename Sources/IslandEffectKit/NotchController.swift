@@ -291,7 +291,8 @@ final class NotchController {
         guard prefs.liveScreenshot else { return }
         let bytes = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
         let size = ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
-        viewModel.absorbCapture(url: url, sizeLabel: size)
+        viewModel.absorbCapture(url: url, sizeLabel: size,
+                                duration: prefs.captureNoticeSeconds)
     }
 
     /// La carátula llega después del aviso de pista nueva (hay que pedir la URL

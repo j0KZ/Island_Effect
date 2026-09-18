@@ -31,6 +31,7 @@ final class Prefs: ObservableObject {
     @Published var enableShelf: Bool { didSet { d.set(enableShelf, forKey: K.enableShelf) } }
     @Published var captureShelf: Bool { didSet { d.set(captureShelf, forKey: K.captureShelf) } }
     @Published var captureMinutes: Double { didSet { d.set(captureMinutes, forKey: K.captureMinutes) } }
+    @Published var captureNoticeSeconds: Double { didSet { d.set(captureNoticeSeconds, forKey: K.captureNoticeSeconds) } }
     @Published var useAppleMusic: Bool { didSet { d.set(useAppleMusic, forKey: K.useAppleMusic) } }
     @Published var useSpotify: Bool { didSet { d.set(useSpotify, forKey: K.useSpotify) } }
 
@@ -53,6 +54,13 @@ final class Prefs: ObservableObject {
         /// un minuto no alcanza ni a verla; más de media hora deja de ser una
         /// bandeja de paso y vuelve a ser el Escritorio lleno de capturas.
         static let captureMinutes: ClosedRange<Double> = 1...30
+        /// Cuánto se queda la píldora de la captura.
+        ///
+        /// Va aparte de `activityDuration` y llega más lejos a propósito. Los
+        /// otros avisos son de cortesía: si te pierdes el cambio de canción no
+        /// pasa nada. Este es lo ÚNICO que te dice que la captura existe, desde
+        /// que se apaga la miniatura de macOS, y esa duraba cinco segundos.
+        static let captureNoticeSeconds: ClosedRange<Double> = 2...15
     }
 
     /// Estática porque el `init` la necesita antes de que el objeto exista del todo.
@@ -80,6 +88,7 @@ final class Prefs: ObservableObject {
         static let enableShelf = "enableShelf"
         static let captureShelf = "captureShelf"
         static let captureMinutes = "captureMinutes"
+        static let captureNoticeSeconds = "captureNoticeSeconds"
         static let useAppleMusic = "useAppleMusic"
         static let useSpotify = "useSpotify"
         static let launchAtLogin = "launchAtLogin"
@@ -108,6 +117,7 @@ final class Prefs: ObservableObject {
             K.enableShelf: true,
             K.captureShelf: true,
             K.captureMinutes: 5.0,
+            K.captureNoticeSeconds: 5.0,
             K.useAppleMusic: true,
             K.useSpotify: true,
             K.launchAtLogin: false
@@ -130,6 +140,7 @@ final class Prefs: ObservableObject {
         enableShelf = d.bool(forKey: K.enableShelf)
         captureShelf = d.bool(forKey: K.captureShelf)
         captureMinutes = Self.clamped(d, K.captureMinutes, Limits.captureMinutes)
+        captureNoticeSeconds = Self.clamped(d, K.captureNoticeSeconds, Limits.captureNoticeSeconds)
         useAppleMusic = d.bool(forKey: K.useAppleMusic)
         useSpotify = d.bool(forKey: K.useSpotify)
         launchAtLogin = d.bool(forKey: K.launchAtLogin)
@@ -141,6 +152,7 @@ final class Prefs: ObservableObject {
                     K.followMouseScreen, K.haptics, K.showMenuBarIcon,
                     K.liveMusic, K.liveBattery, K.liveScreenshot, K.activityDuration,
                     K.enableMusic, K.enableShelf, K.captureShelf, K.captureMinutes,
+                    K.captureNoticeSeconds,
                     K.useAppleMusic, K.useSpotify] {
             d.removeObject(forKey: key)
         }
@@ -162,6 +174,7 @@ final class Prefs: ObservableObject {
         enableShelf = d.bool(forKey: K.enableShelf)
         captureShelf = d.bool(forKey: K.captureShelf)
         captureMinutes = Self.clamped(d, K.captureMinutes, Limits.captureMinutes)
+        captureNoticeSeconds = Self.clamped(d, K.captureNoticeSeconds, Limits.captureNoticeSeconds)
         useAppleMusic = d.bool(forKey: K.useAppleMusic)
         useSpotify = d.bool(forKey: K.useSpotify)
     }

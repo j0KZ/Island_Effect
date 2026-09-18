@@ -134,6 +134,14 @@ struct SettingsView: View {
                         .monospacedDigit().frame(width: 52, alignment: .trailing)
                 }
                 .disabled(!prefs.enableShelf || !prefs.captureShelf)
+                HStack {
+                    Text("Notice stays for")
+                    Slider(value: Self.stepped($prefs.captureNoticeSeconds, by: 0.5),
+                           in: Prefs.Limits.captureNoticeSeconds)
+                    Text(String(format: "%.1fs", prefs.captureNoticeSeconds))
+                        .monospacedDigit().frame(width: 52, alignment: .trailing)
+                }
+                .disabled(!prefs.enableShelf || !prefs.captureShelf || !prefs.liveScreenshot)
                 Text("macOS already shows a thumbnail in the corner, but it lasts five seconds. This one waits for you, and clears itself once you use it.")
                     .font(.caption)
                     .foregroundStyle(.secondary)

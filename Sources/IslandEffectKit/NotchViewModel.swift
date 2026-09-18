@@ -231,7 +231,7 @@ final class NotchViewModel: ObservableObject {
     /// El orden importa. Si la píldora saliera a la vez, se vería aparecer un
     /// panel de la nada mientras algo le pasa por encima; así se lee como una
     /// sola cosa: entró, y esto es lo que entró.
-    func absorbCapture(url: URL, sizeLabel: String) {
+    func absorbCapture(url: URL, sizeLabel: String, duration: Double) {
         guard !isOpen else {
             // Con la isla abierta ya estás mirando la repisa: la miniatura
             // aparece ahí sola y una animación encima solo taparía.
@@ -244,7 +244,7 @@ final class NotchViewModel: ObservableObject {
             guard let self else { return }
             self.tossingCapture = nil
             self.gulp()
-            self.show(.screenshot(url: url, sizeLabel: sizeLabel))
+            self.show(.screenshot(url: url, sizeLabel: sizeLabel), duration: duration)
         }
         tossWork = llegada
         DispatchQueue.main.asyncAfter(deadline: .now() + CaptureToss.duration, execute: llegada)
