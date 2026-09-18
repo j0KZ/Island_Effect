@@ -86,6 +86,14 @@ private func previewPrefs(_ setup: (Prefs) -> Void = { _ in }) -> Prefs {
         .background(.black)
 }
 
+#Preview("Isla abierta · Repisa vacía, panel bajo") {
+    // El otro sitio donde el contenido se salía por abajo: la explicación de
+    // la repisa vacía, que se lee justo mientras arrastras algo hacia ella.
+    RootView(vm: previewModel(open: true, tab: .shelf, height: 100))
+        .frame(width: 600, height: 180)
+        .background(.black)
+}
+
 /// Una captura de mentira en disco, para que la miniatura tenga algo que
 /// enseñar. Sin archivo, la vista previa saldría con el hueco gris.
 private func sampleCapture() -> URL {

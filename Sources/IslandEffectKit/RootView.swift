@@ -57,7 +57,10 @@ struct RootView: View {
             handleDrop(providers)
         }
         .onChange(of: dropTargeted) { _, targeted in
+            IslandDebug.log("drop targeted: \(targeted) (abierta: \(vm.isOpen), repisa: \(prefs.enableShelf))")
             guard prefs.enableShelf else { return }
+            // Que no se cierre sola mientras tienes el archivo en la mano.
+            NotchController.shared.isReceivingDrop = targeted
             if targeted {
                 vm.tab = .shelf
                 withAnimation(.island) { vm.open() }
@@ -208,6 +211,7 @@ struct RootView: View {
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
+        IslandDebug.log("drop: \(providers.count) proveedor(es), repisa: \(prefs.enableShelf)")
         guard prefs.enableShelf else { return false }
         let lock = NSLock()
         var urls: [URL] = []
@@ -222,6 +226,8 @@ struct RootView: View {
             }
         }
         group.notify(queue: .main) {
+            IslandDebug.log("drop: \(urls.count) archivo(s) leídos")
+            NotchController.shared.isReceivingDrop = false
             guard !urls.isEmpty else { return }
             ShelfStore.shared.add(urls: urls)
             vm.tab = .shelf

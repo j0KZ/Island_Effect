@@ -15,10 +15,11 @@ struct ShelfView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let compact = geo.size.height < 110
+            let density = PanelLayout.density(contentHeight: geo.size.height)
+            let compact = density.isCompact
             VStack(spacing: 6) {
                 if shelf.items.isEmpty {
-                    empty
+                    empty(density)
                 } else {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 10) {
@@ -47,17 +48,26 @@ struct ShelfView: View {
         }
     }
 
-    private var empty: some View {
-        VStack(spacing: 6) {
-            Image(systemName: "tray.and.arrow.down")
-                .font(.system(size: 22, weight: .light))
-                .foregroundStyle(.white.opacity(0.4))
+    /// La repisa vacía también se compacta: con el panel bajo, la explicación
+    /// quedaba cortada por el borde de la isla justo mientras arrastrabas algo
+    /// hacia ella, que es el único momento en que se lee.
+    private func empty(_ density: PanelLayout.Density) -> some View {
+        VStack(spacing: density.isTiny ? 3 : 6) {
+            if !density.isTiny {
+                Image(systemName: "tray.and.arrow.down")
+                    .font(.system(size: density.isCompact ? 16 : 22, weight: .light))
+                    .foregroundStyle(.white.opacity(0.4))
+            }
             Text("Drag files onto the notch")
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: density.isCompact ? 12 : 13, weight: .medium))
                 .foregroundStyle(.white.opacity(0.7))
-            Text("They stay here, ready to drag wherever you want")
-                .font(.system(size: 11))
-                .foregroundStyle(.white.opacity(0.4))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+            if !density.isCompact {
+                Text("They stay here, ready to drag wherever you want")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.4))
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(

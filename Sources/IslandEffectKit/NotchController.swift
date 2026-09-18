@@ -53,6 +53,20 @@ final class NotchController {
     private var lastMouseLocation = CGPoint(x: -1, y: -1)
     private var suppressUntil = Date.distantPast
 
+    /// Hay un arrastre encima de la isla ahora mismo.
+    ///
+    /// Mientras dura, la isla no se cierra sola. Durante un arrastre el sistema
+    /// deja de entregar movimientos de mouse como los de siempre, así que el
+    /// seguimiento del hover cree que el puntero se fue: la isla se cerraba, el
+    /// panel se encogía y con él desaparecía el sitio donde soltar el archivo.
+    var isReceivingDrop = false {
+        didSet {
+            guard isReceivingDrop else { return }
+            closeWork?.cancel()
+            closeWork = nil
+        }
+    }
+
     /// Margen transparente alrededor del contenido (para sombras y para tener área de hover).
     private let margin: CGFloat = 60
     /// Holgura del área sensible. Generosa: con 4 px había que apuntar al
@@ -401,10 +415,11 @@ final class NotchController {
             if viewModel.isHovering {
                 withAnimation(.islandFast) { viewModel.isHovering = false }
             }
-            guard viewModel.isOpen, !viewModel.isPinned, closeWork == nil else { return }
+            guard viewModel.isOpen, !viewModel.isPinned, !isReceivingDrop, closeWork == nil else { return }
             let work = DispatchWorkItem { [weak self] in
                 guard let self else { return }
                 self.closeWork = nil
+                guard !self.isReceivingDrop else { return }
                 guard !self.isInsideIsland(NSEvent.mouseLocation, padding: hoverPadding) else { return }
                 IslandDebug.log("close: hover fuera en \(NSEvent.mouseLocation)")
                 // Al irse se cierra con el resorte corto: con el largo (el de
