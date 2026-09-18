@@ -129,46 +129,71 @@ struct StatsView: View {
     @ViewBuilder
     private func battery(_ density: PanelLayout.Density) -> some View {
         if let power = stats.power {
+            // Con el panel al mínimo todo va en UNA fila. Apilado ocupaba más
+            // alto del que hay, y el bloque terminaba pegado al borde de la
+            // isla, sin aire por debajo.
+            let stacked = !density.isTiny
             HStack(alignment: .firstTextBaseline, spacing: density.isCompact ? 10 : 16) {
                 // Los watts van primero y grandes: es el único número de acá que
                 // no se puede ver en ninguna otra parte del sistema.
-                if let watts = SystemStats.watts(power) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(StatsFormat.watts(watts))
-                            .font(.system(size: density.isCompact ? 16 : 20, weight: .semibold,
-                                          design: .rounded).monospacedDigit())
-                        Text("right now")
-                            .font(.system(size: 10.5))
-                            .foregroundStyle(.white.opacity(0.5))
+                headline(power, density: density, stacked: stacked)
+
+                Spacer(minLength: 6)
+
+                if stacked {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        times(power, showCycles: !density.isCompact)
                     }
                 } else {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("\(power.percent) %")
-                            .font(.system(size: density.isCompact ? 16 : 20, weight: .semibold,
-                                          design: .rounded).monospacedDigit())
-                        // Enchufado no se puede saber el consumo: el amperaje es
-                        // el de la carga. Se dice, en vez de enseñar un número
-                        // que significa otra cosa.
-                        Text(power.charging ? "charging" : "plugged in")
-                            .font(.system(size: 10.5))
-                            .foregroundStyle(.white.opacity(0.5))
-                    }
-                }
-
-                Spacer(minLength: 4)
-
-                VStack(alignment: .trailing, spacing: 2) {
-                    if let toEmpty = power.minutesRemaining {
-                        Line(label: "empty", value: StatsFormat.clock(minutes: toEmpty))
-                    }
-                    if let toLow = SystemStats.minutesTo(20, power: power) {
-                        Line(label: "20 %", value: StatsFormat.clock(minutes: toLow))
-                    }
-                    if !density.isCompact {
-                        Line(label: "cycles", value: "\(power.cycles)")
+                    HStack(spacing: 12) {
+                        times(power, showCycles: false)
                     }
                 }
             }
+        }
+    }
+
+    /// El número grande: los watts, o el porcentaje si está enchufado.
+    @ViewBuilder
+    private func headline(_ power: SystemStats.Power, density: PanelLayout.Density,
+                          stacked: Bool) -> some View {
+        let size: CGFloat = density.isTiny ? 15 : (density.isCompact ? 16 : 20)
+        let big = SystemStats.watts(power).map(StatsFormat.watts) ?? "\(power.percent) %"
+        // Enchufado no se puede saber el consumo: el amperaje es el de la carga.
+        // Se dice, en vez de enseñar un número que significa otra cosa.
+        let small: LocalizedStringKey = SystemStats.watts(power) != nil
+            ? "right now"
+            : (power.charging ? "charging" : "plugged in")
+
+        if stacked {
+            VStack(alignment: .leading, spacing: 0) {
+                Text(big)
+                    .font(.system(size: size, weight: .semibold, design: .rounded).monospacedDigit())
+                Text(small)
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                Text(big)
+                    .font(.system(size: size, weight: .semibold, design: .rounded).monospacedDigit())
+                Text(small)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func times(_ power: SystemStats.Power, showCycles: Bool) -> some View {
+        if let toEmpty = power.minutesRemaining {
+            Line(label: "empty", value: StatsFormat.clock(minutes: toEmpty))
+        }
+        if let toLow = SystemStats.minutesTo(20, power: power) {
+            Line(label: "20 %", value: StatsFormat.clock(minutes: toLow))
+        }
+        if showCycles {
+            Line(label: "cycles", value: "\(power.cycles)")
         }
     }
 
