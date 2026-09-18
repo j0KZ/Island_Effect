@@ -138,8 +138,8 @@ struct StatsView: View {
                             .font(.system(size: density.isCompact ? 16 : 20, weight: .semibold,
                                           design: .rounded).monospacedDigit())
                         Text("right now")
-                            .font(.system(size: 9))
-                            .foregroundStyle(.white.opacity(0.4))
+                            .font(.system(size: 10.5))
+                            .foregroundStyle(.white.opacity(0.5))
                     }
                 } else {
                     VStack(alignment: .leading, spacing: 0) {
@@ -150,14 +150,14 @@ struct StatsView: View {
                         // el de la carga. Se dice, en vez de enseñar un número
                         // que significa otra cosa.
                         Text(power.charging ? "charging" : "plugged in")
-                            .font(.system(size: 9))
-                            .foregroundStyle(.white.opacity(0.4))
+                            .font(.system(size: 10.5))
+                            .foregroundStyle(.white.opacity(0.5))
                     }
                 }
 
                 Spacer(minLength: 4)
 
-                VStack(alignment: .trailing, spacing: 1) {
+                VStack(alignment: .trailing, spacing: 2) {
                     if let toEmpty = power.minutesRemaining {
                         Line(label: "empty", value: StatsFormat.clock(minutes: toEmpty))
                     }
@@ -177,12 +177,15 @@ struct StatsView: View {
         let value: String
         var body: some View {
             HStack(spacing: 6) {
+                // Nada por debajo de 10,5: a 9 puntos, "20 %" y "se agota" no se
+                // leían de un vistazo, que es la única forma en que se mira este
+                // panel. Eran las únicas letras de toda la app a ese tamaño.
                 Text(label)
-                    .font(.system(size: 9))
-                    .foregroundStyle(.white.opacity(0.4))
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.white.opacity(0.5))
                 Text(value)
-                    .font(.system(size: 10, weight: .medium, design: .rounded).monospacedDigit())
-                    .foregroundStyle(.white.opacity(0.8))
+                    .font(.system(size: 11.5, weight: .medium, design: .rounded).monospacedDigit())
+                    .foregroundStyle(.white.opacity(0.85))
             }
         }
     }
