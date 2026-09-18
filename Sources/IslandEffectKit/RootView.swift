@@ -642,7 +642,7 @@ struct CaptureTossView: View {
 enum CaptureToss {
     /// Cuánto tarda en subir. Corto a propósito: es un acuse de recibo, no un
     /// número de circo, y la píldora tiene que entrar enseguida detrás.
-    static let duration: Double = 0.42
+    static let duration: Double = 0.26
 
     /// Desde cuánto más abajo del notch arranca.
     static let travel: CGFloat = 96

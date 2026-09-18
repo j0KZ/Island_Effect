@@ -56,16 +56,20 @@
 "Screenshot ready" = "Captura lista";
 "Screenshot taken" = "Captura de pantalla";
 "Screenshots land on the shelf" = "Las capturas caen en la repisa";
+"Screenshots take about five seconds to show up" = "Las capturas tardan unos cinco segundos en aparecer";
 "Shelf" = "Repisa";
 "Show in Finder" = "Mostrar en Finder";
 "System Settings › Privacy & Security › Automation\\nEnable Music and Spotify for Island Effect." = "Ajustes del Sistema › Privacidad y seguridad › Automatización\\nActiva Música y Spotify para Island Effect.";
+"The macOS thumbnail is off, so screenshots appear immediately." = "La miniatura de macOS está apagada: las capturas aparecen al instante.";
 "They leave after" = "Se van a los";
 "They stay here, ready to drag wherever you want" = "Quedan acá listos para arrastrarlos a donde quieras";
 "Track change" = "Cambio de canción";
 "Trackpad haptics" = "Respuesta háptica del trackpad";
 "Turn it off and the menu bar stops shifting left. You can come back here from the island's gear." = "Si lo apagas, la barra deja de correrse hacia la izquierda. Vuelves acá desde el engranaje de la isla.";
+"Turn off the macOS thumbnail" = "Apagar la miniatura de macOS";
 "Turn off the one you don't use: each active player means one less query and one less automation prompt." = "Apaga el que no uses: cada reproductor activo es una consulta menos y un permiso de automatización menos.";
 "Turns the Mac notch into an interactive island: player, file shelf and discreet notices." = "Convierte el notch del Mac en una isla interactiva: reproductor, repisa de archivos y avisos discretos.";
+"Undo" = "Deshacer";
 "Version %@" = "Versión %@";
 "Version" = "Versión";
 "Vertical scroll over the notch = volume" = "Scroll vertical sobre el notch = volumen";
@@ -73,3 +77,4 @@
 "file" = "archivo";
 "files" = "archivos";
 "macOS already shows a thumbnail in the corner, but it lasts five seconds. This one waits for you, and clears itself once you use it." = "macOS ya muestra una miniatura en la esquina, pero dura cinco segundos. Esta te espera, y se borra sola en cuanto la usas.";
+"macOS only writes the file once its own thumbnail goes away. Turning that thumbnail off makes them appear at once — the island already does its job." = "macOS no escribe el archivo hasta que su propia miniatura desaparece. Apagándola aparecen al toque, y la isla ya hace lo mismo.";

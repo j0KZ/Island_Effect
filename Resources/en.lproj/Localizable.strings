@@ -56,16 +56,20 @@
 "Screenshot ready" = "Screenshot ready";
 "Screenshot taken" = "Screenshot taken";
 "Screenshots land on the shelf" = "Screenshots land on the shelf";
+"Screenshots take about five seconds to show up" = "Screenshots take about five seconds to show up";
 "Shelf" = "Shelf";
 "Show in Finder" = "Show in Finder";
 "System Settings › Privacy & Security › Automation\\nEnable Music and Spotify for Island Effect." = "System Settings › Privacy & Security › Automation\\nEnable Music and Spotify for Island Effect.";
+"The macOS thumbnail is off, so screenshots appear immediately." = "The macOS thumbnail is off, so screenshots appear immediately.";
 "They leave after" = "They leave after";
 "They stay here, ready to drag wherever you want" = "They stay here, ready to drag wherever you want";
 "Track change" = "Track change";
 "Trackpad haptics" = "Trackpad haptics";
 "Turn it off and the menu bar stops shifting left. You can come back here from the island's gear." = "Turn it off and the menu bar stops shifting left. You can come back here from the island's gear.";
+"Turn off the macOS thumbnail" = "Turn off the macOS thumbnail";
 "Turn off the one you don't use: each active player means one less query and one less automation prompt." = "Turn off the one you don't use: each active player means one less query and one less automation prompt.";
 "Turns the Mac notch into an interactive island: player, file shelf and discreet notices." = "Turns the Mac notch into an interactive island: player, file shelf and discreet notices.";
+"Undo" = "Undo";
 "Version %@" = "Version %@";
 "Version" = "Version";
 "Vertical scroll over the notch = volume" = "Vertical scroll over the notch = volume";
@@ -73,3 +77,4 @@
 "file" = "file";
 "files" = "files";
 "macOS already shows a thumbnail in the corner, but it lasts five seconds. This one waits for you, and clears itself once you use it." = "macOS already shows a thumbnail in the corner, but it lasts five seconds. This one waits for you, and clears itself once you use it.";
+"macOS only writes the file once its own thumbnail goes away. Turning that thumbnail off makes them appear at once — the island already does its job." = "macOS only writes the file once its own thumbnail goes away. Turning that thumbnail off makes them appear at once — the island already does its job.";

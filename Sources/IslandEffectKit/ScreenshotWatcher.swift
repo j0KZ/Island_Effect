@@ -175,3 +175,38 @@ final class ScreenshotWatcher {
         return Set(names)
     }
 }
+
+/// La miniatura flotante que macOS muestra al sacar una captura.
+///
+/// Importa más de lo que parece: mientras está activada, **el archivo no se
+/// escribe al disco hasta que esa miniatura desaparece sola**, unos cinco
+/// segundos después. La bandeja no puede reaccionar a un archivo que todavía no
+/// existe, así que la captura tarda una eternidad en subir al notch.
+///
+/// Apagarla es un ajuste del sistema, no de esta app, así que se ofrece con un
+/// botón y se puede volver a encender. Y tiene sentido apagarla: la isla hace
+/// lo mismo y mejor, que es justo por lo que existe la bandeja.
+enum SystemScreenshotThumbnail {
+    static let domain = "com.apple.screencapture"
+    static let key = "show-thumbnail"
+
+    static func defaults() -> UserDefaults? { UserDefaults(suiteName: domain) }
+
+    /// Sin la clave escrita, macOS la da por encendida. Ese es el caso normal:
+    /// nadie la toca nunca.
+    nonisolated static func isOn(_ stored: Any?) -> Bool {
+        guard let stored else { return true }
+        if let flag = stored as? Bool { return flag }
+        if let number = stored as? NSNumber { return number.boolValue }
+        return true
+    }
+
+    static func isOn(in defaults: UserDefaults? = SystemScreenshotThumbnail.defaults()) -> Bool {
+        isOn(defaults?.object(forKey: key))
+    }
+
+    static func set(_ on: Bool, in defaults: UserDefaults? = SystemScreenshotThumbnail.defaults()) {
+        defaults?.set(on, forKey: key)
+        IslandDebug.log("miniatura del sistema: \(on ? "encendida" : "apagada")")
+    }
+}

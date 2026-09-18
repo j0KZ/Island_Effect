@@ -447,3 +447,54 @@ struct DroppedFileTests {
         #expect(DroppedFile.url(from: raro)?.path == "/tmp/algo.txt")
     }
 }
+
+/// La miniatura flotante de macOS.
+///
+/// Mientras está encendida, el archivo de la captura no llega al disco hasta
+/// que ella desaparece —unos cinco segundos—, y la bandeja no puede reaccionar
+/// a algo que todavía no existe. Leer bien este ajuste es lo que decide si la
+/// app avisa de eso o se queda callada dejando creer que va lenta.
+struct SystemThumbnailTests {
+
+    @Test("Sin la clave escrita, macOS la da por encendida")
+    func missingKeyMeansOn() {
+        // Es el caso normal: nadie toca nunca este ajuste. Si lo leyéramos como
+        // apagada, no avisaríamos y parecería que la app tarda cinco segundos.
+        #expect(SystemScreenshotThumbnail.isOn(nil))
+    }
+
+    @Test("Un booleano se lee tal cual")
+    func explicitBool() {
+        #expect(SystemScreenshotThumbnail.isOn(true))
+        #expect(!SystemScreenshotThumbnail.isOn(false))
+    }
+
+    @Test("`defaults write` guarda un número, no un booleano")
+    func numbersFromDefaultsWrite() {
+        // `defaults write … -bool false` deja un 0 en el plist, y leerlo como
+        // Bool directamente da nil: se vería como encendida para siempre.
+        #expect(!SystemScreenshotThumbnail.isOn(NSNumber(value: 0)))
+        #expect(SystemScreenshotThumbnail.isOn(NSNumber(value: 1)))
+    }
+
+    @Test("Un valor con basura no la apaga por error")
+    func garbageStaysOn() {
+        // Ante la duda, encendida: como mucho sale un aviso de más, que se
+        // puede ignorar. Al revés, la app callaría y parecería rota.
+        #expect(SystemScreenshotThumbnail.isOn("loquesea"))
+        #expect(SystemScreenshotThumbnail.isOn([1, 2, 3]))
+    }
+
+    @Test("Se escribe y se relee en un dominio de prueba")
+    func roundTrip() {
+        let suite = "thumb-tests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { UserDefaults().removePersistentDomain(forName: suite) }
+
+        #expect(SystemScreenshotThumbnail.isOn(in: defaults))
+        SystemScreenshotThumbnail.set(false, in: defaults)
+        #expect(!SystemScreenshotThumbnail.isOn(in: defaults))
+        SystemScreenshotThumbnail.set(true, in: defaults)
+        #expect(SystemScreenshotThumbnail.isOn(in: defaults))
+    }
+}

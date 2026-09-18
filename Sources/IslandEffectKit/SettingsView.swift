@@ -7,6 +7,9 @@ struct SettingsView: View {
 
     @ObservedObject private var prefs: Prefs
     @State private var tab: Tab
+    /// La miniatura de macOS, leída al abrir Preferencias. No es nuestra, así
+    /// que se relee en vez de guardarse.
+    @State private var systemThumbnail = SystemScreenshotThumbnail.isOn()
 
     /// Las preferencias se reciben para que una vista previa no le cambie los
     /// ajustes a quien esté usando la app; la pestaña, para poder revisar cada
@@ -134,6 +137,36 @@ struct SettingsView: View {
                 Text("macOS already shows a thumbnail in the corner, but it lasts five seconds. This one waits for you, and clears itself once you use it.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                if prefs.captureShelf, systemThumbnail {
+                    // Mientras la miniatura de macOS esté activada, el archivo
+                    // no llega al disco hasta que ella se va: cinco segundos en
+                    // los que la isla no tiene nada que mostrar.
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "clock.badge.exclamationmark")
+                            .foregroundStyle(.orange)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Screenshots take about five seconds to show up")
+                                .font(.caption).bold()
+                            Text("macOS only writes the file once its own thumbnail goes away. Turning that thumbnail off makes them appear at once — the island already does its job.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Button("Turn off the macOS thumbnail") {
+                                SystemScreenshotThumbnail.set(false)
+                                systemThumbnail = false
+                            }
+                        }
+                    }
+                } else if prefs.captureShelf {
+                    HStack(spacing: 8) {
+                        Text("The macOS thumbnail is off, so screenshots appear immediately.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Button("Undo") {
+                            SystemScreenshotThumbnail.set(true)
+                            systemThumbnail = true
+                        }
+                    }
+                }
             }
             Section("Notices under the notch") {
                 Text("Volume and brightness are not shown: macOS already shows its own.")

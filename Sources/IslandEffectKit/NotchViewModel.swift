@@ -252,8 +252,8 @@ final class NotchViewModel: ObservableObject {
 
     /// El latido del notch al tragarse la captura.
     private func gulp() {
-        withAnimation(.spring(response: 0.18, dampingFraction: 0.5)) { pulsing = true }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) { [weak self] in
+        withAnimation(.spring(response: 0.15, dampingFraction: 0.5)) { pulsing = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) { [weak self] in
             withAnimation(.spring(response: 0.34, dampingFraction: 0.62)) { self?.pulsing = false }
         }
     }
