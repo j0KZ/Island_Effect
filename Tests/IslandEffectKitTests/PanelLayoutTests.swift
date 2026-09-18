@@ -101,3 +101,111 @@ struct PanelLayoutTests {
         #expect(PanelLayout.density(contentHeight: -50) == .tiny)
     }
 }
+
+/// El recorrido de la captura subiendo al notch.
+///
+/// De una animación solo se puede comprobar la trayectoria, pero es justo donde
+/// se rompen: empezar ya invisible, terminar fuera del notch, o salirse del
+/// camino a media subida no se ve en una vista previa, que es un solo fotograma.
+struct CaptureTossTests {
+
+    private static let notch: CGFloat = 38
+
+    private static func frame(_ t: Double) -> CaptureToss.Frame {
+        CaptureToss.frame(at: t, notchHeight: notch)
+    }
+
+    @Test("Arranca abajo, entera y visible")
+    func startsBelowAndVisible() {
+        let inicio = Self.frame(0)
+        #expect(inicio.offsetY == Self.notch + CaptureToss.travel)
+        #expect(inicio.scale == 1)
+        #expect(inicio.opacity == 1)
+    }
+
+    @Test("Termina dentro del notch, chica y ya invisible")
+    func endsInsideTheNotch() {
+        let fin = Self.frame(1)
+        // Lo que cuenta es el CENTRO de la miniatura: `scaleEffect` encoge
+        // desde ahí, así que mirar el borde de arriba daba por buena una
+        // animación que se apagaba en el aire, debajo del notch.
+        let centro = fin.offsetY + CaptureToss.side / 2
+        #expect(centro > 0)
+        #expect(centro < Self.notch)
+        #expect(fin.scale < 0.35)
+        #expect(fin.opacity == 0)
+    }
+
+    @Test("Sube sin volver atrás")
+    func risesMonotonically() {
+        var anterior = CGFloat.greatestFiniteMagnitude
+        for paso in stride(from: 0.0, through: 1.0, by: 0.05) {
+            let y = Self.frame(paso).offsetY
+            #expect(y <= anterior, "a \(paso) la miniatura baja en vez de subir")
+            anterior = y
+        }
+    }
+
+    @Test("Se achica sin volver a crecer")
+    func shrinksMonotonically() {
+        var anterior = CGFloat.greatestFiniteMagnitude
+        for paso in stride(from: 0.0, through: 1.0, by: 0.05) {
+            let escala = Self.frame(paso).scale
+            #expect(escala <= anterior)
+            #expect(escala > 0, "a \(paso) la miniatura desaparece del todo")
+            anterior = escala
+        }
+    }
+
+    @Test("Se ve entera la primera mitad del camino")
+    func staysVisibleLongEnough() {
+        // Si empieza a apagarse enseguida no se alcanza a ver qué subió, que es
+        // el único propósito de la animación.
+        #expect(Self.frame(0.25).opacity == 1)
+        #expect(Self.frame(0.5).opacity == 1)
+        #expect(Self.frame(0.8).opacity < 1)
+    }
+
+    @Test("Un progreso fuera de rango no la manda a ninguna parte")
+    func clampsProgress() {
+        // Un resorte con rebote se pasa de 1 antes de asentarse.
+        #expect(Self.frame(1.3) == Self.frame(1))
+        #expect(Self.frame(-0.2) == Self.frame(0))
+    }
+}
+
+/// El latido del contorno al tragarse la captura.
+struct RimPulseTests {
+
+    @Test("El latido se ve aunque tengas el contorno al mínimo")
+    func pulseIsVisibleEvenAtZero() {
+        // El contorno en 0 es un ajuste legítimo: si el latido se multiplicara
+        // por él, no pasaría nada y el aviso se perdería justo con quien eligió
+        // la isla más discreta.
+        let apagado = IslandVisuals.rimStrength(base: 0, isOpen: false, isHovering: false,
+                                                pulsing: true)
+        #expect(apagado >= 0.9)
+    }
+
+    @Test("Y es más fuerte que cualquier estado normal")
+    func pulseBeatsEveryOtherState() {
+        let normal = IslandVisuals.rimStrength(base: 0.85, isOpen: false, isHovering: false)
+        let hover = IslandVisuals.rimStrength(base: 0.85, isOpen: false, isHovering: true)
+        let latido = IslandVisuals.rimStrength(base: 0.85, isOpen: false, isHovering: false,
+                                               pulsing: true)
+        #expect(latido > normal)
+        #expect(latido >= hover)
+    }
+
+    @Test("Nunca se pasa de uno")
+    func neverOverblown() {
+        #expect(IslandVisuals.rimStrength(base: 1, isOpen: false, isHovering: false,
+                                          pulsing: true) <= 1)
+    }
+
+    @Test("Sin latido todo sigue igual que antes")
+    func noPulseIsUnchanged() {
+        #expect(IslandVisuals.rimStrength(base: 0.8, isOpen: true, isHovering: false) == 0.8)
+        #expect(IslandVisuals.rimStrength(base: 0.8, isOpen: false, isHovering: false) == 0.8 * 0.9)
+    }
+}

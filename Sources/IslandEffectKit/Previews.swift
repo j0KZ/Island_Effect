@@ -120,6 +120,42 @@ private func sampleCapture() -> URL {
         .background(.black)
 }
 
+#Preview("Isla cerrada · El notch se traga la captura") {
+    let vm = previewModel(open: false)
+    vm.pulsing = true
+    return RootView(vm: vm)
+        .frame(width: 600, height: 120)
+        .background(.black)
+}
+
+#Preview("Captura subiendo · el recorrido") {
+    // Los fotogramas de la subida, uno al lado del otro: una animación no se
+    // puede revisar en una vista previa, pero su trayectoria sí.
+    let notch: CGFloat = 38
+    return HStack(spacing: 34) {
+        ForEach([0.0, 0.25, 0.5, 0.75, 1.0], id: \.self) { t in
+            let f = CaptureToss.frame(at: t, notchHeight: notch)
+            VStack(spacing: 6) {
+                ZStack(alignment: .top) {
+                    Rectangle().fill(.white.opacity(0.06)).frame(width: 70, height: 150)
+                    Rectangle().fill(.white.opacity(0.14)).frame(width: 70, height: notch)
+                    ScreenshotThumb(url: sampleCapture(), side: CaptureToss.side)
+                        .scaleEffect(f.scale)
+                        .opacity(f.opacity)
+                        .offset(y: f.offsetY)
+                }
+                .frame(width: 70, height: 150, alignment: .top)
+                .clipped()
+                Text(String(format: "%.2f", t))
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+        }
+    }
+    .padding(24)
+    .background(.black)
+}
+
 #Preview("Repisa · Captura de paso") {
     HStack(spacing: 10) {
         ShelfTile(item: ShelfItem(url: sampleCapture(),

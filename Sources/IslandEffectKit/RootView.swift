@@ -24,6 +24,14 @@ struct RootView: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // La captura sube POR ENCIMA de la isla y desde fuera de ella: dentro
+        // quedaría recortada por la forma del notch antes de llegar.
+        .overlay(alignment: .top) {
+            if let url = vm.tossingCapture {
+                CaptureTossView(url: url, notchHeight: vm.notchDrawnSize.height)
+                    .allowsHitTesting(false)
+            }
+        }
         .ignoresSafeArea(.all)
     }
 
@@ -37,6 +45,12 @@ struct RootView: View {
                 .clipShape(shape)
         }
         .frame(width: size.width, height: size.height)
+        // El trago: un empujón corto al tragarse la captura. Va por ancho y
+        // alto por separado —más ancho que alto— porque el notch cuelga del
+        // borde de la pantalla y estirarlo hacia abajo se ve como un rebote,
+        // no como algo que se tragó.
+        .scaleEffect(x: vm.pulsing ? 1.05 : 1,
+                     y: vm.pulsing ? 1.12 : 1, anchor: .top)
         .scaleEffect(dropTargeted && !vm.isOpen ? 1.04 : 1, anchor: .top)
         .animation(.island, value: vm.isOpen)
         // Los avisos entran con un resorte más corto: cada fotograma de esa
@@ -167,7 +181,8 @@ struct RootView: View {
 
     /// Intensidad del contorno según el estado: siempre visible, un poco más al pasar el mouse.
     private var rimStrength: Double {
-        IslandVisuals.rimStrength(base: prefs.rimOpacity, isOpen: vm.isOpen, isHovering: vm.isHovering)
+        IslandVisuals.rimStrength(base: prefs.rimOpacity, isOpen: vm.isOpen,
+                                  isHovering: vm.isHovering, pulsing: vm.pulsing)
     }
 
     /// Blanco especular: tenue arriba, intenso en el borde inferior (luz cenital).
@@ -575,10 +590,93 @@ struct TabButton: View {
 enum IslandVisuals {
     /// Intensidad del contorno: el ajuste del usuario acotado a 0…1, un 25 % más
     /// al pasar el mouse y un 10 % menos en reposo.
-    static func rimStrength(base: Double, isOpen: Bool, isHovering: Bool) -> Double {
+    static func rimStrength(base: Double, isOpen: Bool, isHovering: Bool,
+                            pulsing: Bool = false) -> Double {
         let base = max(0, min(1, base))
+        // El latido de "me tragué la captura" tiene que verse incluso con el
+        // contorno al mínimo, que es un ajuste legítimo: si se multiplicara,
+        // con 0 no pasaría nada y el aviso se perdería.
+        if pulsing { return max(0.9, min(1, base * 1.6)) }
         if isOpen { return base }
         if isHovering { return min(1, base * 1.25) }
         return base * 0.9
+    }
+}
+
+/// La miniatura de la captura subiendo hacia el notch, hasta que se la traga.
+struct CaptureTossView: View {
+    let url: URL
+    var notchHeight: CGFloat
+
+    @State private var progress: Double = 0
+
+    private var frame: CaptureToss.Frame {
+        CaptureToss.frame(at: progress, notchHeight: notchHeight)
+    }
+
+    var body: some View {
+        ScreenshotThumb(url: url, side: CaptureToss.side)
+            .scaleEffect(frame.scale)
+            .opacity(frame.opacity)
+            // La sombra se va con la miniatura: sin esto queda una mancha
+            // flotando un instante después de que ya se la tragaron.
+            .shadow(color: .black.opacity(0.45 * frame.opacity), radius: 10, y: 4)
+            .offset(y: frame.offsetY)
+            .onAppear {
+                // Entra con el mismo resorte que abre la isla: es lo que hace
+                // que se lea como la misma pieza de software y no como un
+                // efecto pegado encima.
+                withAnimation(.spring(response: CaptureToss.duration,
+                                      dampingFraction: 0.82)) {
+                    progress = 1
+                }
+            }
+    }
+}
+
+/// La captura subiendo hacia el notch.
+///
+/// El recorrido va en una función aparte porque es lo único comprobable de una
+/// animación: que empiece abajo y a tamaño de miniatura, que termine dentro del
+/// notch y ya invisible, y que no se salga del camino por el medio.
+enum CaptureToss {
+    /// Cuánto tarda en subir. Corto a propósito: es un acuse de recibo, no un
+    /// número de circo, y la píldora tiene que entrar enseguida detrás.
+    static let duration: Double = 0.42
+
+    /// Desde cuánto más abajo del notch arranca.
+    static let travel: CGFloat = 96
+
+    /// El lado de la miniatura que sube. Hace falta acá y no solo en la vista:
+    /// `scaleEffect` encoge desde el CENTRO, así que para que la miniatura
+    /// termine dentro del recorte hay que apuntar el centro, no el borde de
+    /// arriba. Sin esto se apagaba en el aire, un dedo por debajo del notch.
+    static let side: CGFloat = 56
+
+    struct Frame: Equatable {
+        /// Hacia abajo desde el borde superior de la pantalla.
+        var offsetY: CGFloat
+        var scale: CGFloat
+        var opacity: Double
+    }
+
+    /// `progress` va de 0 (recién sacada) a 1 (dentro del notch).
+    static func frame(at progress: Double, notchHeight: CGFloat) -> Frame {
+        let t = max(0, min(1, progress))
+        // Se desvanece sobre el final, no desde el principio: si empieza a
+        // apagarse enseguida, no se alcanza a ver qué subió.
+        //
+        // Se mide lo que QUEDA de visibilidad en vez de lo que se ha ido: así
+        // el último fotograma da cero exacto. Al revés —restando el
+        // desvanecido— la coma flotante dejaba un 0,0000000000000001 y la
+        // miniatura nunca terminaba de apagarse del todo.
+        let visible = (1 - t) / 0.45
+        // Empieza entera justo debajo del notch y termina con su centro en
+        // mitad del recorte.
+        let inicio = notchHeight + travel
+        let fin = notchHeight / 2 - side / 2
+        return Frame(offsetY: inicio + (fin - inicio) * t,
+                     scale: 1 - 0.72 * t,
+                     opacity: max(0, min(1, visible)))
     }
 }
