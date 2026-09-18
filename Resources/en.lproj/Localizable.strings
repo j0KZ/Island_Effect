@@ -78,4 +78,4 @@
 "file" = "file";
 "files" = "files";
 "macOS already shows a thumbnail in the corner, but it lasts five seconds. This one waits for you, and clears itself once you use it." = "macOS already shows a thumbnail in the corner, but it lasts five seconds. This one waits for you, and clears itself once you use it.";
-"macOS only writes the file once its own thumbnail goes away. Turning that thumbnail off makes them appear at once — the island already does its job." = "macOS only writes the file once its own thumbnail goes away. Turning that thumbnail off makes them appear at once — the island already does its job.";
+"macOS only writes the file once its own thumbnail goes away, so both show up. Turn that thumbnail off and the island takes over, immediately." = "macOS only writes the file once its own thumbnail goes away, so both show up. Turn that thumbnail off and the island takes over, immediately.";

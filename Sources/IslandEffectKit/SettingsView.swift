@@ -146,16 +146,18 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if prefs.captureShelf, systemThumbnail {
-                    // Mientras la miniatura de macOS esté activada, el archivo
-                    // no llega al disco hasta que ella se va: cinco segundos en
-                    // los que la isla no tiene nada que mostrar.
+                    // Dato, no advertencia: tener las dos miniaturas es una
+                    // elección legítima, y quien la toma no necesita un aspa
+                    // naranja recordándoselo cada vez que abre Preferencias.
+                    // Mientras la de macOS esté activada, el archivo no llega
+                    // al disco hasta que ella se va.
                     HStack(alignment: .top, spacing: 8) {
-                        Image(systemName: "clock.badge.exclamationmark")
-                            .foregroundStyle(.orange)
+                        Image(systemName: "clock")
+                            .foregroundStyle(.secondary)
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Screenshots take about five seconds to show up")
                                 .font(.caption).bold()
-                            Text("macOS only writes the file once its own thumbnail goes away. Turning that thumbnail off makes them appear at once — the island already does its job.")
+                            Text("macOS only writes the file once its own thumbnail goes away, so both show up. Turn that thumbnail off and the island takes over, immediately.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             Button("Turn off the macOS thumbnail") {

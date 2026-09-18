@@ -78,4 +78,4 @@
 "file" = "archivo";
 "files" = "archivos";
 "macOS already shows a thumbnail in the corner, but it lasts five seconds. This one waits for you, and clears itself once you use it." = "macOS ya muestra una miniatura en la esquina, pero dura cinco segundos. Esta te espera, y se borra sola en cuanto la usas.";
-"macOS only writes the file once its own thumbnail goes away. Turning that thumbnail off makes them appear at once — the island already does its job." = "macOS no escribe el archivo hasta que su propia miniatura desaparece. Apagándola aparecen al toque, y la isla ya hace lo mismo.";
+"macOS only writes the file once its own thumbnail goes away, so both show up. Turn that thumbnail off and the island takes over, immediately." = "macOS no escribe el archivo hasta que su propia miniatura desaparece, así que salen las dos. Apagándola, la isla toma el relevo y aparece al toque.";
