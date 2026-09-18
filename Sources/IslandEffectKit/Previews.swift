@@ -59,6 +59,25 @@ private func previewModel(open: Bool, tab: NotchTab = .music, activity: LiveActi
         .background(.black)
 }
 
+/// Preferencias desechables para las vistas previas de la ventana de ajustes.
+@MainActor
+private func previewPrefs(_ setup: (Prefs) -> Void = { _ in }) -> Prefs {
+    let suite = "island-previews-\(UUID().uuidString)"
+    let prefs = Prefs(defaults: UserDefaults(suiteName: suite) ?? .standard)
+    setup(prefs)
+    return prefs
+}
+
+#Preview("Preferencias · Apariencia") {
+    // Los sliders van sin `step:` a propósito: con él, macOS dibuja una marca
+    // por paso y el control queda hecho un peine.
+    SettingsView(prefs: previewPrefs(), tab: .appearance)
+}
+
+#Preview("Preferencias · Módulos") {
+    SettingsView(prefs: previewPrefs { $0.enableShelf = true }, tab: .modules)
+}
+
 #Preview("Isla abierta · Sin música, panel bajo") {
     // El alto mínimo que deja Preferencias. Es donde se veía el corte: los
     // botones de Música y Spotify quedaban fuera de la isla.

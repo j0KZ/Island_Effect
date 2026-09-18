@@ -242,7 +242,10 @@ final class NotchController {
             self.announceTrack(np)
         }
         ScreenshotWatcher.shared.onCapture = { [weak self] url in
-            guard let self, self.prefs.captureShelf else { return }
+            guard let self,
+                  ScreenshotWatcher.wantsCapture(shelfEnabled: self.prefs.enableShelf,
+                                                 captureShelf: self.prefs.captureShelf)
+            else { return }
             self.announceCapture(url)
         }
     }

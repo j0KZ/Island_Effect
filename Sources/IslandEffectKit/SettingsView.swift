@@ -3,32 +3,47 @@ import AppKit
 import ServiceManagement
 
 struct SettingsView: View {
-    @ObservedObject private var prefs = Prefs.shared
+    enum Tab: Hashable { case general, appearance, modules, about }
+
+    @ObservedObject private var prefs: Prefs
+    @State private var tab: Tab
+
+    /// Las preferencias se reciben para que una vista previa no le cambie los
+    /// ajustes a quien esté usando la app; la pestaña, para poder revisar cada
+    /// una por separado (un `TabView` sin selección siempre muestra la primera).
+    init(prefs: Prefs = .shared, tab: Tab = .general) {
+        _prefs = ObservedObject(wrappedValue: prefs)
+        _tab = State(initialValue: tab)
+    }
 
     var body: some View {
-        TabView {
-            general.tabItem { Label("General", systemImage: "gearshape") }
-            appearance.tabItem { Label("Appearance", systemImage: "paintbrush") }
-            modules.tabItem { Label("Modules", systemImage: "square.grid.2x2") }
-            about.tabItem { Label("About", systemImage: "info.circle") }
+        TabView(selection: $tab) {
+            general.tabItem { Label("General", systemImage: "gearshape") }.tag(Tab.general)
+            appearance.tabItem { Label("Appearance", systemImage: "paintbrush") }.tag(Tab.appearance)
+            modules.tabItem { Label("Modules", systemImage: "square.grid.2x2") }.tag(Tab.modules)
+            about.tabItem { Label("About", systemImage: "info.circle") }.tag(Tab.about)
         }
-        .frame(width: 460, height: 380)
+        // Módulos es la pestaña larga: con 380 quedaban las capturas bajo el
+        // borde y había que adivinar que la lista seguía.
+        .frame(width: 460, height: 440)
     }
 
     // MARK: General
 
     private var general: some View {
         Form {
-            Toggle("Open on hover", isOn: $prefs.openOnHover)
-            HStack {
-                Text("Open delay")
-                Slider(value: $prefs.hoverOpenDelay, in: 0...0.8)
-                Text(String(format: "%.2fs", prefs.hoverOpenDelay))
-                    .monospacedDigit().frame(width: 46, alignment: .trailing)
+            Section {
+                Toggle("Open on hover", isOn: $prefs.openOnHover)
+                HStack {
+                    Text("Open delay")
+                    Slider(value: Self.stepped($prefs.hoverOpenDelay, by: 0.05), in: 0...0.8)
+                    Text(String(format: "%.2fs", prefs.hoverOpenDelay))
+                        .monospacedDigit().frame(width: 46, alignment: .trailing)
+                }
+                Toggle("Follow the screen the pointer is on", isOn: $prefs.followMouseScreen)
+                Toggle("Trackpad haptics", isOn: $prefs.haptics)
             }
-            Toggle("Follow the screen the pointer is on", isOn: $prefs.followMouseScreen)
-            Toggle("Trackpad haptics", isOn: $prefs.haptics)
-            Divider()
+            Section {
             Toggle("Menu bar icon", isOn: $prefs.showMenuBarIcon)
             Toggle("Open at login", isOn: $prefs.launchAtLogin)
                 .onChange(of: prefs.launchAtLogin) { _, enabled in
@@ -38,6 +53,7 @@ struct SettingsView: View {
                 Button("Quit Island Effect") { NSApp.terminate(nil) }
                 Spacer()
                 Button("Restore defaults") { prefs.resetToDefaults() }
+            }
             }
         }
         .formStyle(.grouped)
@@ -53,7 +69,7 @@ struct SettingsView: View {
             slider("Extra width at rest", value: $prefs.extraClosedWidth, range: 0...260, step: 2)
             HStack {
                 Text("Outline")
-                Slider(value: $prefs.rimOpacity, in: 0...1, step: 0.02)
+                Slider(value: Self.stepped($prefs.rimOpacity, by: 0.02), in: 0...1)
                 Text("\(Int(prefs.rimOpacity * 100)) %")
                     .monospacedDigit().frame(width: 46, alignment: .trailing)
             }
@@ -65,10 +81,21 @@ struct SettingsView: View {
                         range: ClosedRange<Double>, step: Double) -> some View {
         HStack {
             Text(title)
-            Slider(value: value, in: range, step: step)
+            Slider(value: Self.stepped(value, by: step), in: range)
             Text("\(Int(value.wrappedValue))")
                 .monospacedDigit().frame(width: 46, alignment: .trailing)
         }
+    }
+
+    /// El salto se hace en el binding y no con el `step:` del `Slider`.
+    ///
+    /// macOS dibuja una marca por cada paso: el ancho abierto va de 420 a 900
+    /// de a 10, o sea 48 marcas, y el control queda hecho un peine que además
+    /// no dice nada —nadie cuenta marcas para elegir 620—. Redondeando acá se
+    /// sigue moviendo de a pasos, pero la barra queda limpia.
+    private static func stepped(_ value: Binding<Double>, by step: Double) -> Binding<Double> {
+        Binding(get: { value.wrappedValue },
+                set: { value.wrappedValue = step > 0 ? ((($0) / step).rounded()) * step : $0 })
     }
 
     // MARK: Módulos
@@ -94,12 +121,12 @@ struct SettingsView: View {
                 Text("A pocket: drop files onto the notch and drag them back out wherever you need them.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Divider()
                 Toggle("Screenshots land on the shelf", isOn: $prefs.captureShelf)
                     .disabled(!prefs.enableShelf)
                 HStack {
                     Text("They leave after")
-                    Slider(value: $prefs.captureMinutes, in: Prefs.Limits.captureMinutes, step: 1)
+                    Slider(value: Self.stepped($prefs.captureMinutes, by: 1),
+                           in: Prefs.Limits.captureMinutes)
                     Text(String(format: "%.0f min", prefs.captureMinutes))
                         .monospacedDigit().frame(width: 52, alignment: .trailing)
                 }
@@ -118,7 +145,7 @@ struct SettingsView: View {
                     .disabled(!prefs.captureShelf)
                 HStack {
                     Text("Duration")
-                    Slider(value: $prefs.activityDuration, in: 1...6, step: 0.2)
+                    Slider(value: Self.stepped($prefs.activityDuration, by: 0.2), in: 1...6)
                     Text(String(format: "%.1fs", prefs.activityDuration))
                         .monospacedDigit().frame(width: 46, alignment: .trailing)
                 }

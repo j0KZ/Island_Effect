@@ -140,6 +140,15 @@ struct IsCaptureTests {
         #expect(Self.isCapture("CAPTURA.PNG", age: 0.2))
     }
 
+    @Test("Con la repisa apagada no se guarda ninguna captura")
+    func capturesNeedTheShelf() {
+        // La pestaña de la repisa ni aparece: anunciar una captura que no se
+        // puede ir a buscar es peor que no anunciarla.
+        #expect(!ScreenshotWatcher.wantsCapture(shelfEnabled: false, captureShelf: true))
+        #expect(!ScreenshotWatcher.wantsCapture(shelfEnabled: true, captureShelf: false))
+        #expect(ScreenshotWatcher.wantsCapture(shelfEnabled: true, captureShelf: true))
+    }
+
     @Test("Solo se miran los archivos que aparecieron")
     func onlyNewNames() {
         let antes: Set<String> = ["a.png", "b.png"]

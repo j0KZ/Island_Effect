@@ -72,6 +72,15 @@ final class ScreenshotWatcher {
         return age >= -window && age <= window
     }
 
+    /// ¿Hay dónde dejar esta captura?
+    ///
+    /// Con la repisa apagada no lo hay, y la píldora estaría anunciando algo
+    /// que no se puede ir a buscar a ninguna parte: la pestaña ni siquiera
+    /// aparece.
+    nonisolated static func wantsCapture(shelfEnabled: Bool, captureShelf: Bool) -> Bool {
+        shelfEnabled && captureShelf
+    }
+
     /// Los nombres que no estaban la vez anterior. Se compara por nombre y no
     /// por fecha de la carpeta: renombrar un archivo también toca la carpeta, y
     /// así ese no se cuela como captura nueva.
