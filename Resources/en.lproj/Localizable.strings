@@ -6,6 +6,7 @@
 "20 %" = "20 %";
 "A pocket: drop files onto the notch and drag them back out wherever you need them." = "A pocket: drop files onto the notch and drag them back out wherever you need them.";
 "About" = "About";
+"Any Shortcut can show a notice under the notch or drop a file on the shelf, with the plain \"Open URL\" action. Turn it off and the island ignores them." = "Any Shortcut can show a notice under the notch or drop a file on the shelf, with the plain \"Open URL\" action. Turn it off and the island ignores them.";
 "Appearance" = "Appearance";
 "Automation permission missing" = "Automation permission missing";
 "Battery charging" = "Battery charging";
@@ -28,6 +29,7 @@
 "Keep on the shelf" = "Keep on the shelf";
 "Keep open" = "Keep open";
 "Leaves the shelf soon" = "Leaves the shelf soon";
+"Let Shortcuts send things to the island" = "Let Shortcuts send things to the island";
 "Memory" = "Memory";
 "Menu bar icon" = "Menu bar icon";
 "Modules" = "Modules";
@@ -62,6 +64,7 @@
 "Screenshots land on the shelf" = "Screenshots land on the shelf";
 "Screenshots take about five seconds to show up" = "Screenshots take about five seconds to show up";
 "Shelf" = "Shelf";
+"Shortcuts" = "Shortcuts";
 "Show in Finder" = "Show in Finder";
 "Stats" = "Stats";
 "System Settings › Privacy & Security › Automation\\nEnable Music and Spotify for Island Effect." = "System Settings › Privacy & Security › Automation\\nEnable Music and Spotify for Island Effect.";

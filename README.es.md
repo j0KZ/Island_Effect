@@ -82,6 +82,31 @@ que no uses ahorra una consulta y un permiso de automatización)
   → Información.
 - Solo mide mientras estás mirando la pestaña. Cerrada, no corre nada.
 
+**Atajos de macOS**
+
+Al revés de lo que suelen ofrecer estas apps. Lo normal es "la isla ejecuta un
+Atajo", que solo sirve si ya tienes Atajos hechos. Esto es lo contrario:
+cualquier Atajo le manda cosas a la isla, con la acción **Abrir URL** de toda la
+vida. Así la isla se vuelve la salida de todo lo que ya tengas automatizado.
+
+| URL | Qué hace |
+|---|---|
+| `islandeffect://notice?text=Respaldo%20listo` | aviso bajo el notch |
+| `…&icon=checkmark.circle` | con un símbolo del sistema |
+| `…&seconds=6` | cuánto dura (1–30; sin esto, la de Preferencias) |
+| `islandeffect://shelf?path=/tmp/informe.pdf` | deja el archivo en la repisa |
+| `…&minutes=10` | lo deja de paso, con cuenta atrás (1–120) |
+| `islandeffect://open` · `islandeffect://close` | abre o cierra la isla |
+
+Los nombres de los parámetros no distinguen mayúsculas, la coma decimal vale
+igual que el punto, un ícono que no existe se descarta en vez de dejar un hueco,
+y un número fuera de rango se acota en vez de perderse. Una URL que no se
+entiende no hace nada. Se apaga entero en Preferencias → Módulos.
+
+Se eligió un esquema de URL y no App Intents, que es la forma oficial: App
+Intents necesita un paso de compilación que hace Xcode y que este proyecto
+—SwiftPM puro con un `build.sh`— no ejecuta.
+
 **Cómo se usa**
 - Pasa el mouse por el notch para abrirla.
 - Clic: se queda abierta; otro clic la cierra.
@@ -158,6 +183,7 @@ un idioma es copiar una carpeta `.lproj` y traducir.
 | `ScreenshotWatcher.swift` | Vigila la carpeta de capturas (`DispatchSource`) |
 | `SystemMonitors.swift` | Volumen (CoreAudio, bajo demanda) y batería (IOKit) |
 | `SystemStats.swift` / `StatsView.swift` | CPU y memoria (Mach), GPU y consumo (IOKit) |
+| `IslandURL.swift` | El puente con Atajos: `islandeffect://…` |
 | `Components.swift` | Piezas compartidas: carátula, slider, ecualizador, botones |
 | `SettingsView.swift` | Preferencias + ítem de inicio |
 | `Debug.swift` | Log opcional y ganchos de prueba (`ISLAND_*`) |

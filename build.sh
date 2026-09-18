@@ -58,6 +58,14 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleDevelopmentRegion</key><string>en</string>
     <key>CFBundleLocalizations</key>
     <array><string>en</string><string>es</string></array>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key><string>$BUNDLE_ID</string>
+            <key>CFBundleTypeRole</key><string>Viewer</string>
+            <key>CFBundleURLSchemes</key><array><string>islandeffect</string></array>
+        </dict>
+    </array>
 </dict>
 </plist>
 PLIST

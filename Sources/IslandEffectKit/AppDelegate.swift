@@ -15,6 +15,25 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Con Preferencias abierto la isla no debe desplegarse: taparía la ventana.
     var settingsVisible: Bool { settingsWindow?.window?.isVisible ?? false }
 
+    /// Lo que mandan los Atajos con "Abrir URL".
+    ///
+    /// macOS entrega las URLs por acá aunque la app no tenga ventanas ni ícono
+    /// en el Dock, que es el caso de esta.
+    public func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls {
+            guard let command = IslandURL.parse(url) else {
+                IslandDebug.log("url no entendida: \(url)")
+                continue
+            }
+            guard Prefs.shared.allowURLCommands else {
+                IslandDebug.log("url ignorada (puente apagado): \(url)")
+                return
+            }
+            IslandDebug.log("url: \(command)")
+            NotchController.shared.run(command)
+        }
+    }
+
     public func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.shared = self
         NSApp.setActivationPolicy(.accessory)

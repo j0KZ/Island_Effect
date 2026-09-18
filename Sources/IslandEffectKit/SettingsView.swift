@@ -191,6 +191,22 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            Section("Shortcuts") {
+                Toggle("Let Shortcuts send things to the island", isOn: $prefs.allowURLCommands)
+                Text("Any Shortcut can show a notice under the notch or drop a file on the shelf, with the plain \"Open URL\" action. Turn it off and the island ignores them.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if prefs.allowURLCommands {
+                    VStack(alignment: .leading, spacing: 3) {
+                        ForEach(IslandURL.examples, id: \.self) { example in
+                            Text(verbatim: example)
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                        }
+                    }
+                }
+            }
             Section("Notices under the notch") {
                 Text("Volume and brightness are not shown: macOS already shows its own.")
                     .font(.caption)

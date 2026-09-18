@@ -56,6 +56,8 @@ enum LiveActivity: Equatable {
     /// porque la píldora enseña la miniatura: sin ella el aviso sería un texto
     /// que hay que creerse.
     case screenshot(url: URL, sizeLabel: String)
+    /// Un aviso mandado desde fuera, por un Atajo de macOS.
+    case notice(text: String, symbol: String?)
 
     /// El texto de la píldora de batería. Vive aquí porque lo usan tanto la
     /// vista como el cálculo del ancho: si cada una tuviera el suyo, al cambiar
@@ -143,6 +145,11 @@ final class NotchViewModel: ObservableObject {
                            textWidth(sizeLabel, size: 9.5, weight: .regular))
             // 20 de márgenes + 24 miniatura + 16 del ícono de repisa + huecos
             return CGSize(width: clampWidth(98 + text), height: 40)
+        case .notice(let text, let symbol):
+            // El texto lo escribe quien hizo el Atajo y puede ser de cualquier
+            // largo: la píldora se ajusta a él, con el mismo tope que las demás.
+            let width = textWidth(text, size: 12, weight: .medium)
+            return CGSize(width: clampWidth((symbol == nil ? 44 : 70) + width), height: 32)
         }
     }
 

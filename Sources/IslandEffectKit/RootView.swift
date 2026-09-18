@@ -317,6 +317,8 @@ struct ActivityBar: View {
                    tint: charging ? .green : .white)
         case .screenshot(let url, _):
             ScreenshotThumb(url: url, side: 26)
+        case .notice(_, let name):
+            if let name { symbol(name) }
         }
     }
 
@@ -339,6 +341,12 @@ struct ActivityBar: View {
                 .foregroundStyle(.white.opacity(0.75))
                 .lineLimit(1)
                 .accessibilityValue("\(percent) %")
+        case .notice(let text, _):
+            // Sin `LocalizedStringKey`: lo escribió el usuario en su Atajo, no
+            // es una cadena nuestra que haya que traducir.
+            Text(verbatim: text)
+                .font(.system(size: 12, weight: .medium))
+                .lineLimit(1)
         case .screenshot(_, let sizeLabel):
             VStack(alignment: .leading, spacing: 0) {
                 Text(LocalizedStringKey(LiveActivity.screenshotLabel))
@@ -369,6 +377,8 @@ struct ActivityBar: View {
         case .screenshot:
             // Dice a dónde fue a parar: a la repisa, no al limbo.
             symbol("tray.and.arrow.down.fill", tint: .white.opacity(0.7))
+        case .notice:
+            EmptyView()
         }
     }
 
