@@ -78,6 +78,50 @@ private func previewPrefs(_ setup: (Prefs) -> Void = { _ in }) -> Prefs {
     SettingsView(prefs: previewPrefs { $0.enableShelf = true }, tab: .modules)
 }
 
+/// Números medidos en esta máquina. Las vistas previas corren en un sandbox
+/// donde las llamadas Mach no contestan, así que se ponen a mano; si no, el
+/// panel saldría con tres rayas y no se podría revisar nada.
+@MainActor
+private func previewStats(cpu: Double? = 0.179, gpu: Double? = 0.44,
+                          plugged: Bool = false) -> StatsMonitor {
+    StatsMonitor(cpu: cpu,
+                 memory: (used: 28_690_000_000, total: 51_539_607_552),
+                 gpu: gpu,
+                 power: SystemStats.Power(milliamps: -964, millivolts: 11_224,
+                                          minutesRemaining: 184, percent: 41,
+                                          cycles: 12, charging: plugged, plugged: plugged))
+}
+
+#Preview("Estadísticas") {
+    StatsView(monitor: previewStats())
+        .frame(width: 590, height: 165)
+        .padding(14)
+        .background(.black)
+}
+
+#Preview("Estadísticas · enchufado") {
+    // Enchufado no se puede saber el consumo, así que sale el porcentaje.
+    StatsView(monitor: previewStats(plugged: true))
+        .frame(width: 590, height: 165)
+        .padding(14)
+        .background(.black)
+}
+
+#Preview("Estadísticas · panel bajo") {
+    StatsView(monitor: previewStats())
+        .frame(width: 590, height: 61)
+        .padding(7)
+        .background(.black)
+}
+
+#Preview("Estadísticas · sin datos todavía") {
+    // El primer segundo: la CPU necesita dos muestras para decir algo.
+    StatsView(monitor: previewStats(cpu: nil, gpu: nil))
+        .frame(width: 590, height: 165)
+        .padding(14)
+        .background(.black)
+}
+
 #Preview("Isla abierta · Sin música, panel bajo") {
     // El alto mínimo que deja Preferencias. Es donde se veía el corte: los
     // botones de Música y Spotify quedaban fuera de la isla.

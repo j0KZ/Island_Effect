@@ -69,6 +69,19 @@ que no uses ahorra una consulta y un permiso de automatización)
   com.apple.screencapture location`), no solo en el Escritorio. Incluye las
   grabaciones de pantalla de ⇧⌘5.
 
+**Estadísticas**
+- CPU, memoria y GPU, con su barra.
+- **Watts que estás gastando ahora mismo** — el número que macOS no muestra en
+  ninguna parte. Abre algo pesado y se ve saltar. Solo se puede saber con
+  batería: enchufado, el amperaje es el de la carga, y separar consumo de carga
+  sí necesita `powermetrics` con root. Antes que un número que significa otra
+  cosa, no se muestra ninguno.
+- Cuánto queda **hasta agotarse y hasta el 20 %**, recalculado según el consumo
+  de ahora.
+- Ciclos de la batería, que si no hay que ir a buscar a Configuración → General
+  → Información.
+- Solo mide mientras estás mirando la pestaña. Cerrada, no corre nada.
+
 **Cómo se usa**
 - Pasa el mouse por el notch para abrirla.
 - Clic: se queda abierta; otro clic la cierra.
@@ -85,7 +98,7 @@ despertaba el proceso con cada scroll del sistema.
   ocultar el ícono de la barra de menús (con botón de salir acá mismo).
 - Qué módulos quieres (reproductor, fuentes de música, repisa) y qué avisos,
   con su duración. Si solo dejas un módulo activo, la barra de pestañas
-  desaparece sola.
+  desaparece sola, y el último encendido no se puede apagar.
 
 Son cuatro pestañas: General, Apariencia, Módulos y Acerca de.
 
@@ -144,6 +157,7 @@ un idioma es copiar una carpeta `.lproj` y traducir.
 | `ShelfStore.swift` / `ShelfView.swift` | Repisa de archivos y bandeja de capturas |
 | `ScreenshotWatcher.swift` | Vigila la carpeta de capturas (`DispatchSource`) |
 | `SystemMonitors.swift` | Volumen (CoreAudio, bajo demanda) y batería (IOKit) |
+| `SystemStats.swift` / `StatsView.swift` | CPU y memoria (Mach), GPU y consumo (IOKit) |
 | `Components.swift` | Piezas compartidas: carátula, slider, ecualizador, botones |
 | `SettingsView.swift` | Preferencias + ítem de inicio |
 | `Debug.swift` | Log opcional y ganchos de prueba (`ISLAND_*`) |

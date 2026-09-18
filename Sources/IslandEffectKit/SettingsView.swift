@@ -80,6 +80,12 @@ struct SettingsView: View {
         .formStyle(.grouped)
     }
 
+    /// El último módulo encendido no se puede apagar.
+    private func canDisable(_ tab: NotchTab) -> Bool {
+        NotchTab.canDisable(tab, music: prefs.enableMusic, shelf: prefs.enableShelf,
+                            stats: prefs.enableStats)
+    }
+
     private func slider(_ title: String, value: Binding<Double>,
                         range: ClosedRange<Double>, step: Double) -> some View {
         HStack {
@@ -109,7 +115,7 @@ struct SettingsView: View {
                 // El último módulo encendido no se puede apagar: sin ninguno,
                 // la isla abierta no tendría nada que mostrar.
                 Toggle("Music", isOn: $prefs.enableMusic)
-                    .disabled(prefs.enableMusic && !prefs.enableShelf)
+                    .disabled(!canDisable(.music))
                 Toggle("Read Spotify", isOn: $prefs.useSpotify)
                     .disabled(!prefs.enableMusic)
                 Toggle("Read Apple Music", isOn: $prefs.useAppleMusic)
@@ -120,7 +126,7 @@ struct SettingsView: View {
             }
             Section("Shelf") {
                 Toggle("File shelf", isOn: $prefs.enableShelf)
-                    .disabled(prefs.enableShelf && !prefs.enableMusic)
+                    .disabled(!canDisable(.shelf))
                 Text("A pocket: drop files onto the notch and drag them back out wherever you need them.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -177,6 +183,13 @@ struct SettingsView: View {
                         }
                     }
                 }
+            }
+            Section("Stats") {
+                Toggle("System stats", isOn: $prefs.enableStats)
+                    .disabled(!canDisable(.stats))
+                Text("CPU, memory, GPU, and what the battery is actually spending right now in watts — a number macOS shows nowhere. It only samples while you are looking at it.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             Section("Notices under the notch") {
                 Text("Volume and brightness are not shown: macOS already shows its own.")

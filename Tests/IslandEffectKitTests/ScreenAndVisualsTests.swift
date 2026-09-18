@@ -118,9 +118,9 @@ struct NotchTabTests {
 
     @Test("Solo se ofrecen los módulos activados")
     func availableTabs() {
-        #expect(NotchTab.available(music: true, shelf: true) == [.music, .shelf])
-        #expect(NotchTab.available(music: true, shelf: false) == [.music])
-        #expect(NotchTab.available(music: false, shelf: true) == [.shelf])
+        #expect(NotchTab.available(music: true, shelf: true, stats: false) == [.music, .shelf])
+        #expect(NotchTab.available(music: true, shelf: false, stats: false) == [.music])
+        #expect(NotchTab.available(music: false, shelf: true, stats: false) == [.shelf])
     }
 
     @Test("Si se desactiva el módulo que estaba abierto, se cae en el otro")

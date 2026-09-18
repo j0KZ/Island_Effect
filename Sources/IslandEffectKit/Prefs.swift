@@ -29,6 +29,7 @@ final class Prefs: ObservableObject {
     // Módulos
     @Published var enableMusic: Bool { didSet { d.set(enableMusic, forKey: K.enableMusic) } }
     @Published var enableShelf: Bool { didSet { d.set(enableShelf, forKey: K.enableShelf) } }
+    @Published var enableStats: Bool { didSet { d.set(enableStats, forKey: K.enableStats) } }
     @Published var captureShelf: Bool { didSet { d.set(captureShelf, forKey: K.captureShelf) } }
     @Published var captureMinutes: Double { didSet { d.set(captureMinutes, forKey: K.captureMinutes) } }
     @Published var captureNoticeSeconds: Double { didSet { d.set(captureNoticeSeconds, forKey: K.captureNoticeSeconds) } }
@@ -86,6 +87,7 @@ final class Prefs: ObservableObject {
         static let activityDuration = "activityDuration"
         static let enableMusic = "enableMusic"
         static let enableShelf = "enableShelf"
+        static let enableStats = "enableStats"
         static let captureShelf = "captureShelf"
         static let captureMinutes = "captureMinutes"
         static let captureNoticeSeconds = "captureNoticeSeconds"
@@ -115,6 +117,7 @@ final class Prefs: ObservableObject {
             K.activityDuration: 2.2,
             K.enableMusic: true,
             K.enableShelf: true,
+            K.enableStats: true,
             K.captureShelf: true,
             K.captureMinutes: 5.0,
             K.captureNoticeSeconds: 5.0,
@@ -138,6 +141,7 @@ final class Prefs: ObservableObject {
         activityDuration = Self.clamped(d, K.activityDuration, Limits.activityDuration)
         enableMusic = d.bool(forKey: K.enableMusic)
         enableShelf = d.bool(forKey: K.enableShelf)
+        enableStats = d.bool(forKey: K.enableStats)
         captureShelf = d.bool(forKey: K.captureShelf)
         captureMinutes = Self.clamped(d, K.captureMinutes, Limits.captureMinutes)
         captureNoticeSeconds = Self.clamped(d, K.captureNoticeSeconds, Limits.captureNoticeSeconds)
@@ -151,7 +155,7 @@ final class Prefs: ObservableObject {
                     K.rimOpacity, K.openOnHover, K.hoverOpenDelay,
                     K.followMouseScreen, K.haptics, K.showMenuBarIcon,
                     K.liveMusic, K.liveBattery, K.liveScreenshot, K.activityDuration,
-                    K.enableMusic, K.enableShelf, K.captureShelf, K.captureMinutes,
+                    K.enableMusic, K.enableShelf, K.enableStats, K.captureShelf, K.captureMinutes,
                     K.captureNoticeSeconds,
                     K.useAppleMusic, K.useSpotify] {
             d.removeObject(forKey: key)
@@ -172,6 +176,7 @@ final class Prefs: ObservableObject {
         activityDuration = Self.clamped(d, K.activityDuration, Limits.activityDuration)
         enableMusic = d.bool(forKey: K.enableMusic)
         enableShelf = d.bool(forKey: K.enableShelf)
+        enableStats = d.bool(forKey: K.enableStats)
         captureShelf = d.bool(forKey: K.captureShelf)
         captureMinutes = Self.clamped(d, K.captureMinutes, Limits.captureMinutes)
         captureNoticeSeconds = Self.clamped(d, K.captureNoticeSeconds, Limits.captureNoticeSeconds)

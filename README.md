@@ -70,6 +70,17 @@ one you don't use saves a query and an automation prompt)
   com.apple.screencapture location`), not just on the Desktop. Screen recordings
   from ⇧⌘5 included.
 
+**Stats**
+- CPU, memory and GPU, each with its bar.
+- **The watts you are spending right now** — the number macOS shows nowhere.
+  Open something heavy and watch it jump. Only knowable on battery: plugged in,
+  the amperage is the charging current, and telling draw from charge apart does
+  need `powermetrics` as root. Rather than a number that means something else,
+  none is shown.
+- Time **to empty and to 20 %**, recomputed from what you are drawing now.
+- Battery cycles, otherwise buried in Settings → General → About.
+- It only samples while you are looking at the tab. Closed, nothing runs.
+
 **How you use it**
 - Hover the notch to open it.
 - Click: it stays open; click again to close.
@@ -144,6 +155,7 @@ is copying a `.lproj` folder and translating it.
 | `ShelfStore.swift` / `ShelfView.swift` | File shelf and screenshot tray |
 | `ScreenshotWatcher.swift` | Watches the screenshot folder (`DispatchSource`) |
 | `SystemMonitors.swift` | Volume (CoreAudio, on demand) and battery (IOKit) |
+| `SystemStats.swift` / `StatsView.swift` | CPU and memory (Mach), GPU and draw (IOKit) |
 | `Components.swift` | Shared pieces: artwork, slider, equalizer, buttons |
 | `SettingsView.swift` | Preferences + login item |
 | `Debug.swift` | Optional log and test hooks (`ISLAND_*`) |
