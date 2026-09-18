@@ -166,3 +166,77 @@ struct NotchControllerTests {
         #expect(Self.isAbout(hover.update(inside: true, now: t0 + 0.5), 0))
     }
 }
+
+/// La zona por la que se despliega la isla cuando viene un archivo subiendo.
+///
+/// Es lo que evita tener que llegar hasta la barra de menús con el archivo en
+/// la mano. Al pasar un arrastre por encima de los íconos de la barra, macOS
+/// los abre solos —Centro de Control incluido—, y eso no se puede desactivar
+/// desde la app: lo único que se puede es no obligar a pasar por ahí.
+struct DropApproachTests {
+
+    /// Una pantalla de portátil cualquiera, con el origen donde lo pone macOS.
+    static let pantalla = CGRect(x: 0, y: 0, width: 1512, height: 982)
+    static let ancho: CGFloat = 620
+    static let fondo: CGFloat = 180
+
+    private func acercandose(x: CGFloat, y: CGFloat,
+                             en marco: CGRect = DropApproachTests.pantalla) -> Bool {
+        NotchController.withinDropApproach(CGPoint(x: x, y: y), screenFrame: marco,
+                                           width: DropApproachTests.ancho,
+                                           depth: DropApproachTests.fondo)
+    }
+
+    @Test("Justo debajo del notch, la isla sale a recibir el archivo")
+    func straightBelowTheNotch() {
+        let p = DropApproachTests.pantalla
+        #expect(acercandose(x: p.midX, y: p.maxY - 40))
+        #expect(acercandose(x: p.midX, y: p.maxY - 170))
+    }
+
+    @Test("Más abajo de la zona, no")
+    func tooLow() {
+        // Arrastrar un archivo por el medio de la pantalla no debe desplegar
+        // nada: la mayoría de los arrastres no van al notch.
+        let p = DropApproachTests.pantalla
+        #expect(!acercandose(x: p.midX, y: p.maxY - 181))
+        #expect(!acercandose(x: p.midX, y: p.midY))
+        #expect(!acercandose(x: p.midX, y: p.minY))
+    }
+
+    @Test("A los costados tampoco")
+    func offToTheSides() {
+        // Arrastrar hacia un ícono de la barra de menús, o hacia una ventana
+        // pegada al borde de arriba, no es ir al notch.
+        let p = DropApproachTests.pantalla
+        #expect(!acercandose(x: p.maxX - 20, y: p.maxY - 20))
+        #expect(!acercandose(x: p.minX + 20, y: p.maxY - 20))
+    }
+
+    @Test("La zona es tan ancha como el panel abierto")
+    func asWideAsThePanel() {
+        // Ni más ni menos: es exactamente donde va a aparecer el sitio para
+        // soltar, así que el archivo no se queda a medio camino.
+        let p = DropApproachTests.pantalla
+        let mitad = DropApproachTests.ancho / 2
+        #expect(acercandose(x: p.midX - mitad + 1, y: p.maxY - 90))
+        #expect(acercandose(x: p.midX + mitad - 1, y: p.maxY - 90))
+        #expect(!acercandose(x: p.midX - mitad - 1, y: p.maxY - 90))
+        #expect(!acercandose(x: p.midX + mitad + 1, y: p.maxY - 90))
+    }
+
+    @Test("En el borde mismo de la pantalla todavía cuenta")
+    func atTheVeryTop() {
+        let p = DropApproachTests.pantalla
+        #expect(acercandose(x: p.midX, y: p.maxY - 1))
+    }
+
+    @Test("En una pantalla externa la zona sigue centrada en ella")
+    func secondScreen() {
+        // Un monitor a la derecha del principal: la zona va sobre SU centro,
+        // no sobre el del escritorio entero.
+        let externa = CGRect(x: 1512, y: 0, width: 2560, height: 1440)
+        #expect(acercandose(x: externa.midX, y: externa.maxY - 50, en: externa))
+        #expect(!acercandose(x: externa.midX, y: externa.maxY - 50))
+    }
+}

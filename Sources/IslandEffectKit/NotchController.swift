@@ -146,6 +146,22 @@ final class NotchController {
                          padding: padding)
     }
 
+    /// ¿El puntero viene subiendo hacia el notch con algo en la mano?
+    ///
+    /// Sirve para desplegar la isla ANTES de que llegue a la barra de menús.
+    /// Los íconos de la barra —Centro de Control entre ellos— se abren solos
+    /// cuando un arrastre pasa por encima: es de macOS, no nuestro, y no hay
+    /// forma de desactivarlo desde acá. Lo que sí se puede es no obligar a
+    /// subir hasta la barra: con el panel ya desplegado, se suelta debajo de
+    /// ella y no se roza ningún ícono.
+    nonisolated static func withinDropApproach(_ point: CGPoint, screenFrame: CGRect,
+                                               width: CGFloat, depth: CGFloat) -> Bool {
+        let zona = CGRect(x: screenFrame.midX - width / 2,
+                          y: screenFrame.maxY - depth,
+                          width: width, height: depth)
+        return zona.contains(point)
+    }
+
     /// Las zonas sensibles en coordenadas de pantalla: la columna del notch y,
     /// si hay panel o píldora colgando, su rectángulo. Va aparte de la pantalla
     /// real para poder probarla con cualquier resolución.
@@ -350,6 +366,34 @@ final class NotchController {
         hoverTimer = timer
     }
 
+    /// Cuánto antes de la barra de menús se despliega la isla a recibir un
+    /// archivo. Da sitio de sobra para soltar sin rozar la barra, y es poco
+    /// como para no desplegarse cuando arrastras algo a otra ventana de arriba.
+    private static let dropApproachDepth: CGFloat = 180
+
+    private var dragPasteboardCount = -1
+    private var dragHasFiles = false
+
+    /// ¿Hay un arrastre de archivos en curso ahora mismo?
+    ///
+    /// El botón apretado es la comprobación barata y va primero: sin él no hay
+    /// arrastre y no se toca el portapapeles. El contenido solo se mira cuando
+    /// cambia el número del portapapeles de arrastre, o sea una vez por
+    /// arrastre y no una vez por movimiento.
+    private func fileDragInProgress() -> Bool {
+        guard NSEvent.pressedMouseButtons & 1 != 0 else {
+            dragHasFiles = false
+            return false
+        }
+        let pb = NSPasteboard(name: .drag)
+        if pb.changeCount != dragPasteboardCount {
+            dragPasteboardCount = pb.changeCount
+            dragHasFiles = pb.canReadObject(forClasses: [NSURL.self],
+                                            options: [.urlReadingFileURLsOnly: true])
+        }
+        return dragHasFiles
+    }
+
     private func handleMouseMoved() {
         let location = NSEvent.mouseLocation
         let previous = lastMouseLocation
@@ -379,14 +423,37 @@ final class NotchController {
             relayout()
         }
 
+        // Un archivo subiendo hacia el notch: desplegar antes de que llegue a
+        // la barra de menús.
+        let approaching = prefs.enableShelf && nearTop
+            && Self.withinDropApproach(location, screenFrame: currentScreen.frame,
+                                       width: viewModel.openSize.width,
+                                       depth: Self.dropApproachDepth)
+            && fileDragInProgress()
+        if approaching {
+            isReceivingDrop = true
+            if !viewModel.isOpen {
+                IslandDebug.log("arrastre acercándose: abriendo la repisa")
+                viewModel.tab = .shelf
+                withAnimation(.island) { viewModel.open() }
+            }
+        } else if isReceivingDrop, NSEvent.pressedMouseButtons & 1 == 0 {
+            // Soltó (acá o en otra parte): la isla vuelve a poder cerrarse.
+            isReceivingDrop = false
+        }
+
         let inside = isInsideIsland(location, padding: hoverPadding)
             || crossedIsland(from: previous, to: location, padding: hoverPadding)
+            || approaching
 
         // Clave: `hitTest` solo decide el enrutado dentro de nuestra app; la
         // ventana igual se come el clic. Para que los íconos de la barra de
         // menús sigan siendo pulsables hay que desactivar los eventos de la
         // ventana mientras el puntero no esté sobre la isla.
-        let overIsland = isInsideIsland(location, padding: 2)
+        // Con un arrastre encima la holgura es generosa: no hay clics que
+        // robarle a la barra de menús mientras tienes un archivo en la mano, y
+        // apuntar fino arrastrando es justo lo que no se puede hacer.
+        let overIsland = isInsideIsland(location, padding: isReceivingDrop ? hoverPadding : 2)
         if let panel, panel.ignoresMouseEvents == overIsland {
             panel.ignoresMouseEvents = !overIsland
             IslandDebug.log("eventos de la ventana: \(overIsland ? "activos" : "pasan de largo") en \(location)")
