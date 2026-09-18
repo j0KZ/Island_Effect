@@ -239,4 +239,58 @@ enum DroppedFile {
         guard url.isFileURL, !url.path.isEmpty else { return nil }
         return url.standardizedFileURL
     }
+
+    /// Los tipos que se prueban, en orden, antes de mirar el portapapeles.
+    ///
+    /// No basta con `public.file-url`: hay orígenes que lo anuncian y después
+    /// fallan al entregarlo («Cannot load representation of type…») aunque la
+    /// ruta venga perfectamente en otro tipo del mismo arrastre.
+    nonisolated static func candidateTypes(_ registered: [String]) -> [String] {
+        let preferidos = ["public.file-url", "public.url", "public.utf8-plain-text", "public.text"]
+        var orden = preferidos.filter(registered.contains)
+        orden += registered.filter { !preferidos.contains($0) }
+        // Si el origen no anunció ninguno, se prueba igual el de archivo: a
+        // veces la lista viene vacía y el tipo está de todos modos.
+        return orden.isEmpty ? ["public.file-url"] : orden
+    }
+
+    /// Saca la ruta de un arrastre, probando todo lo que el origen ofrece y,
+    /// como último recurso, el portapapeles de arrastre.
+    nonisolated static func load(from provider: NSItemProvider,
+                                 completion: @escaping (URL?) -> Void) {
+        var pendientes = candidateTypes(provider.registeredTypeIdentifiers)[...]
+
+        func siguiente() {
+            guard let tipo = pendientes.popFirst() else {
+                // Ninguno sirvió. El portapapeles de arrastre tiene las rutas
+                // durante toda la suelta, y es lo que usaba AppKit antes de que
+                // existieran los proveedores.
+                let url = fromDragPasteboard()
+                IslandDebug.log("drop: por portapapeles -> \(url?.lastPathComponent ?? "nada")")
+                completion(url)
+                return
+            }
+            provider.loadItem(forTypeIdentifier: tipo) { item, error in
+                if let url = url(from: item) {
+                    IslandDebug.log("drop: ruta desde \(tipo)")
+                    completion(url)
+                } else {
+                    IslandDebug.log("drop: \(tipo) no sirvió "
+                                    + "(\(error?.localizedDescription ?? "sin ruta dentro"))")
+                    siguiente()
+                }
+            }
+        }
+        siguiente()
+    }
+
+    /// El portapapeles que macOS mantiene durante un arrastre.
+    nonisolated static func fromDragPasteboard() -> URL? {
+        let pb = NSPasteboard(name: .drag)
+        let opciones: [NSPasteboard.ReadingOptionKey: Any] = [.urlReadingFileURLsOnly: true]
+        guard let objetos = pb.readObjects(forClasses: [NSURL.self], options: opciones) as? [URL] else {
+            return nil
+        }
+        return objetos.compactMap(usable).first
+    }
 }

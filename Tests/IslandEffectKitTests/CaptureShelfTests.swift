@@ -414,6 +414,31 @@ struct DroppedFileTests {
         #expect(DroppedFile.url(from: Data([0xFF, 0xFE, 0x00])) == nil)
     }
 
+    @Test("Se prueba primero el tipo de archivo, pero no solo ese")
+    func candidateOrder() {
+        // El fallo real: el origen anunciaba `public.file-url` y después no
+        // sabía entregarlo. Si se prueba solo ese, el arrastre se pierde
+        // aunque la ruta venga en otro tipo del mismo paquete.
+        let orden = DroppedFile.candidateTypes(["com.apple.raro", "public.utf8-plain-text",
+                                                "public.file-url"])
+        #expect(orden.first == "public.file-url")
+        #expect(orden.contains("public.utf8-plain-text"))
+        #expect(orden.contains("com.apple.raro"))
+        #expect(orden.count == 3)
+    }
+
+    @Test("Sin tipos anunciados se prueba igual el de archivo")
+    func emptyTypeListStillTries() {
+        #expect(DroppedFile.candidateTypes([]) == ["public.file-url"])
+    }
+
+    @Test("Los tipos raros van al final, no se descartan")
+    func unknownTypesGoLast() {
+        let orden = DroppedFile.candidateTypes(["com.adobe.pdf", "public.url"])
+        #expect(orden.first == "public.url")
+        #expect(orden.last == "com.adobe.pdf")
+    }
+
     @Test("La ruta queda normalizada")
     func pathIsStandardized() {
         // Sin esto, el mismo archivo podría entrar dos veces con dos rutas

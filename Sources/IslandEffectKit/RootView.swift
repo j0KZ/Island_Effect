@@ -218,15 +218,14 @@ struct RootView: View {
         let group = DispatchGroup()
         for provider in providers {
             group.enter()
-            // `loadObject(ofClass: URL.self)` devolvía nada: el Finder no entrega
-            // un objeto URL, entrega los BYTES de `public.file-url`. Pedir el
-            // ítem crudo y convertirlo nosotros es lo que sí funciona.
-            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier) { item, error in
-                if let url = DroppedFile.url(from: item) {
+            IslandDebug.log("drop: tipos \(provider.registeredTypeIdentifiers)")
+            // Se prueban todos los tipos que el origen dice tener, no solo
+            // `public.file-url`: hay apps que anuncian ese tipo y después no lo
+            // saben entregar ("Cannot load representation of type…"), y la ruta
+            // igual viene en otro.
+            DroppedFile.load(from: provider) { url in
+                if let url {
                     lock.lock(); urls.append(url); lock.unlock()
-                } else {
-                    IslandDebug.log("drop: no se pudo leer la ruta de \(type(of: item)) "
-                                    + "(\(error?.localizedDescription ?? "sin error"))")
                 }
                 group.leave()
             }
