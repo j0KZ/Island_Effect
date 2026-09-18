@@ -53,6 +53,20 @@ final class NotchController {
     private var lastMouseLocation = CGPoint(x: -1, y: -1)
     private var suppressUntil = Date.distantPast
 
+    /// Hay un arrastre encima de la isla ahora mismo.
+    ///
+    /// Mientras dura, la isla no se cierra sola. Durante un arrastre el sistema
+    /// deja de entregar movimientos de mouse como los de siempre, así que el
+    /// seguimiento del hover cree que el puntero se fue: la isla se cerraba, el
+    /// panel se encogía y con él desaparecía el sitio donde soltar el archivo.
+    var isReceivingDrop = false {
+        didSet {
+            guard isReceivingDrop else { return }
+            closeWork?.cancel()
+            closeWork = nil
+        }
+    }
+
     /// Margen transparente alrededor del contenido (para sombras y para tener área de hover).
     private let margin: CGFloat = 60
     /// Holgura del área sensible. Generosa: con 4 px había que apuntar al
@@ -130,6 +144,22 @@ final class NotchController {
                          notchHeight: viewModel.notchDrawnSize.height,
                          board: viewModel.boardSize,
                          padding: padding)
+    }
+
+    /// ¿El puntero viene subiendo hacia el notch con algo en la mano?
+    ///
+    /// Sirve para desplegar la isla ANTES de que llegue a la barra de menús.
+    /// Los íconos de la barra —Centro de Control entre ellos— se abren solos
+    /// cuando un arrastre pasa por encima: es de macOS, no nuestro, y no hay
+    /// forma de desactivarlo desde acá. Lo que sí se puede es no obligar a
+    /// subir hasta la barra: con el panel ya desplegado, se suelta debajo de
+    /// ella y no se roza ningún ícono.
+    nonisolated static func withinDropApproach(_ point: CGPoint, screenFrame: CGRect,
+                                               width: CGFloat, depth: CGFloat) -> Bool {
+        let zona = CGRect(x: screenFrame.midX - width / 2,
+                          y: screenFrame.maxY - depth,
+                          width: width, height: depth)
+        return zona.contains(point)
     }
 
     /// Las zonas sensibles en coordenadas de pantalla: la columna del notch y,
@@ -241,6 +271,28 @@ final class NotchController {
             guard let self, self.prefs.liveMusic, np.isActive else { return }
             self.announceTrack(np)
         }
+        ScreenshotWatcher.shared.onCapture = { [weak self] url in
+            guard let self,
+                  ScreenshotWatcher.wantsCapture(shelfEnabled: self.prefs.enableShelf,
+                                                 captureShelf: self.prefs.captureShelf)
+            else { return }
+            self.announceCapture(url)
+        }
+    }
+
+    /// Una captura recién hecha: a la repisa y, si el usuario quiere, un aviso.
+    ///
+    /// El archivo se acaba de crear y puede estar todavía escribiéndose, así que
+    /// el tamaño se lee ahora y no al dibujar: una píldora que dijera "0 bytes"
+    /// porque llegó medio milisegundo antes sería peor que no decir nada.
+    private func announceCapture(_ url: URL) {
+        ShelfStore.shared.addCapture(url: url, ttl: prefs.captureMinutes * 60)
+        IslandDebug.log("captura -> repisa: \(ShelfStore.shared.items.count) ítem(s)")
+        guard prefs.liveScreenshot else { return }
+        let bytes = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+        let size = ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
+        viewModel.absorbCapture(url: url, sizeLabel: size,
+                                duration: prefs.captureNoticeSeconds)
     }
 
     /// La carátula llega después del aviso de pista nueva (hay que pedir la URL
@@ -315,6 +367,34 @@ final class NotchController {
         hoverTimer = timer
     }
 
+    /// Cuánto antes de la barra de menús se despliega la isla a recibir un
+    /// archivo. Da sitio de sobra para soltar sin rozar la barra, y es poco
+    /// como para no desplegarse cuando arrastras algo a otra ventana de arriba.
+    private static let dropApproachDepth: CGFloat = 180
+
+    private var dragPasteboardCount = -1
+    private var dragHasFiles = false
+
+    /// ¿Hay un arrastre de archivos en curso ahora mismo?
+    ///
+    /// El botón apretado es la comprobación barata y va primero: sin él no hay
+    /// arrastre y no se toca el portapapeles. El contenido solo se mira cuando
+    /// cambia el número del portapapeles de arrastre, o sea una vez por
+    /// arrastre y no una vez por movimiento.
+    private func fileDragInProgress() -> Bool {
+        guard NSEvent.pressedMouseButtons & 1 != 0 else {
+            dragHasFiles = false
+            return false
+        }
+        let pb = NSPasteboard(name: .drag)
+        if pb.changeCount != dragPasteboardCount {
+            dragPasteboardCount = pb.changeCount
+            dragHasFiles = pb.canReadObject(forClasses: [NSURL.self],
+                                            options: [.urlReadingFileURLsOnly: true])
+        }
+        return dragHasFiles
+    }
+
     private func handleMouseMoved() {
         let location = NSEvent.mouseLocation
         let previous = lastMouseLocation
@@ -344,14 +424,37 @@ final class NotchController {
             relayout()
         }
 
+        // Un archivo subiendo hacia el notch: desplegar antes de que llegue a
+        // la barra de menús.
+        let approaching = prefs.enableShelf && nearTop
+            && Self.withinDropApproach(location, screenFrame: currentScreen.frame,
+                                       width: viewModel.openSize.width,
+                                       depth: Self.dropApproachDepth)
+            && fileDragInProgress()
+        if approaching {
+            isReceivingDrop = true
+            if !viewModel.isOpen {
+                IslandDebug.log("arrastre acercándose: abriendo la repisa")
+                viewModel.tab = .shelf
+                withAnimation(.island) { viewModel.open() }
+            }
+        } else if isReceivingDrop, NSEvent.pressedMouseButtons & 1 == 0 {
+            // Soltó (acá o en otra parte): la isla vuelve a poder cerrarse.
+            isReceivingDrop = false
+        }
+
         let inside = isInsideIsland(location, padding: hoverPadding)
             || crossedIsland(from: previous, to: location, padding: hoverPadding)
+            || approaching
 
         // Clave: `hitTest` solo decide el enrutado dentro de nuestra app; la
         // ventana igual se come el clic. Para que los íconos de la barra de
         // menús sigan siendo pulsables hay que desactivar los eventos de la
         // ventana mientras el puntero no esté sobre la isla.
-        let overIsland = isInsideIsland(location, padding: 2)
+        // Con un arrastre encima la holgura es generosa: no hay clics que
+        // robarle a la barra de menús mientras tienes un archivo en la mano, y
+        // apuntar fino arrastrando es justo lo que no se puede hacer.
+        let overIsland = isInsideIsland(location, padding: isReceivingDrop ? hoverPadding : 2)
         if let panel, panel.ignoresMouseEvents == overIsland {
             panel.ignoresMouseEvents = !overIsland
             IslandDebug.log("eventos de la ventana: \(overIsland ? "activos" : "pasan de largo") en \(location)")
@@ -381,10 +484,11 @@ final class NotchController {
             if viewModel.isHovering {
                 withAnimation(.islandFast) { viewModel.isHovering = false }
             }
-            guard viewModel.isOpen, !viewModel.isPinned, closeWork == nil else { return }
+            guard viewModel.isOpen, !viewModel.isPinned, !isReceivingDrop, closeWork == nil else { return }
             let work = DispatchWorkItem { [weak self] in
                 guard let self else { return }
                 self.closeWork = nil
+                guard !self.isReceivingDrop else { return }
                 guard !self.isInsideIsland(NSEvent.mouseLocation, padding: hoverPadding) else { return }
                 IslandDebug.log("close: hover fuera en \(NSEvent.mouseLocation)")
                 // Al irse se cierra con el resorte corto: con el largo (el de

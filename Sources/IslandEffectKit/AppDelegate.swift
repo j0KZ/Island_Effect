@@ -22,6 +22,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         VolumeMonitor.shared.start()
         BatteryMonitor.shared.start()
         MediaManager.shared.start()
+        ScreenshotWatcher.shared.start()
 
         NotchController.shared.start()
         syncStatusItem()

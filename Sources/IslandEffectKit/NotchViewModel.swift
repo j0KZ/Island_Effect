@@ -34,6 +34,10 @@ enum NotchTab: String, CaseIterable, Identifiable {
 enum LiveActivity: Equatable {
     case music(title: String, subtitle: String, playing: Bool)
     case battery(percent: Int, plugged: Bool, charging: Bool)
+    /// Acabas de hacer una captura y ya está en la repisa. La ruta va dentro
+    /// porque la píldora enseña la miniatura: sin ella el aviso sería un texto
+    /// que hay que creerse.
+    case screenshot(url: URL, sizeLabel: String)
 
     /// El texto de la píldora de batería. Vive aquí porque lo usan tanto la
     /// vista como el cálculo del ancho: si cada una tuviera el suyo, al cambiar
@@ -41,6 +45,10 @@ enum LiveActivity: Equatable {
     static func batteryLabel(plugged: Bool, charging: Bool) -> String {
         charging ? "Charging" : (plugged ? "Plugged in" : "On battery")
     }
+
+    /// Lo mismo para la captura: un solo sitio donde dice qué pone la píldora.
+    static let screenshotLabel = "Screenshot ready"
+
 }
 
 /// Estado de la isla: cerrada, en hover, o abierta.
@@ -112,6 +120,11 @@ final class NotchViewModel: ObservableObject {
             let text = textWidth(label, size: 11, weight: .medium)
                 + textWidth(" \(percent) %", size: 11, weight: .semibold)
             return CGSize(width: clampWidth(86 + text), height: 30)
+        case .screenshot(_, let sizeLabel):
+            let text = max(textWidth(String(localized: "Screenshot ready"), size: 11, weight: .semibold),
+                           textWidth(sizeLabel, size: 9.5, weight: .regular))
+            // 20 de márgenes + 24 miniatura + 16 del ícono de repisa + huecos
+            return CGSize(width: clampWidth(98 + text), height: 40)
         }
     }
 
@@ -198,6 +211,51 @@ final class NotchViewModel: ObservableObject {
     func hideActivityImmediately() {
         activityDismiss?.invalidate()
         activity = nil
+    }
+
+    // MARK: - La captura subiendo al notch
+
+    /// La captura que está subiendo ahora mismo. Mientras no sea `nil`, la
+    /// vista la dibuja en camino.
+    @Published private(set) var tossingCapture: URL?
+    /// El notch está dando el trago: contorno al máximo y un empujón de tamaño.
+    /// Lo escribe `gulp()`; las vistas previas lo fijan para poder mirarlo
+    /// quieto, que es la única forma de revisar un fotograma de 0,2 segundos.
+    @Published var pulsing = false
+
+    private var tossWork: DispatchWorkItem?
+
+    /// Sacaste una captura: sube al notch, el notch la traga, y recién ahí sale
+    /// la píldora.
+    ///
+    /// El orden importa. Si la píldora saliera a la vez, se vería aparecer un
+    /// panel de la nada mientras algo le pasa por encima; así se lee como una
+    /// sola cosa: entró, y esto es lo que entró.
+    func absorbCapture(url: URL, sizeLabel: String, duration: Double) {
+        guard !isOpen else {
+            // Con la isla abierta ya estás mirando la repisa: la miniatura
+            // aparece ahí sola y una animación encima solo taparía.
+            return
+        }
+        tossWork?.cancel()
+        tossingCapture = url
+
+        let llegada = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.tossingCapture = nil
+            self.gulp()
+            self.show(.screenshot(url: url, sizeLabel: sizeLabel), duration: duration)
+        }
+        tossWork = llegada
+        DispatchQueue.main.asyncAfter(deadline: .now() + CaptureToss.duration, execute: llegada)
+    }
+
+    /// El latido del notch al tragarse la captura.
+    private func gulp() {
+        withAnimation(.spring(response: 0.15, dampingFraction: 0.5)) { pulsing = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) { [weak self] in
+            withAnimation(.spring(response: 0.34, dampingFraction: 0.62)) { self?.pulsing = false }
+        }
     }
 }
 

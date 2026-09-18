@@ -1,13 +1,22 @@
 import SwiftUI
+import ImageIO
 import AppKit
 import Combine
 import UniformTypeIdentifiers
 
 struct RootView: View {
     @ObservedObject var vm: NotchViewModel
-    @ObservedObject var prefs = Prefs.shared
+    /// Las del modelo, no `Prefs.shared`. Con el singleton clavado aquí, una
+    /// vista previa o una prueba que le diera otras preferencias al modelo veía
+    /// la isla dibujarse con unas y medirse con otras.
+    @ObservedObject private var prefs: Prefs
     @ObservedObject private var media = MediaManager.shared
     @State private var dropTargeted = false
+
+    init(vm: NotchViewModel) {
+        self.vm = vm
+        _prefs = ObservedObject(wrappedValue: vm.prefs)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -15,6 +24,14 @@ struct RootView: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // La captura sube POR ENCIMA de la isla y desde fuera de ella: dentro
+        // quedaría recortada por la forma del notch antes de llegar.
+        .overlay(alignment: .top) {
+            if let url = vm.tossingCapture {
+                CaptureTossView(url: url, notchHeight: vm.notchDrawnSize.height)
+                    .allowsHitTesting(false)
+            }
+        }
         .ignoresSafeArea(.all)
     }
 
@@ -28,6 +45,12 @@ struct RootView: View {
                 .clipShape(shape)
         }
         .frame(width: size.width, height: size.height)
+        // El trago: un empujón corto al tragarse la captura. Va por ancho y
+        // alto por separado —más ancho que alto— porque el notch cuelga del
+        // borde de la pantalla y estirarlo hacia abajo se ve como un rebote,
+        // no como algo que se tragó.
+        .scaleEffect(x: vm.pulsing ? 1.05 : 1,
+                     y: vm.pulsing ? 1.12 : 1, anchor: .top)
         .scaleEffect(dropTargeted && !vm.isOpen ? 1.04 : 1, anchor: .top)
         .animation(.island, value: vm.isOpen)
         // Los avisos entran con un resorte más corto: cada fotograma de esa
@@ -48,7 +71,10 @@ struct RootView: View {
             handleDrop(providers)
         }
         .onChange(of: dropTargeted) { _, targeted in
+            IslandDebug.log("drop targeted: \(targeted) (abierta: \(vm.isOpen), repisa: \(prefs.enableShelf))")
             guard prefs.enableShelf else { return }
+            // Que no se cierre sola mientras tienes el archivo en la mano.
+            NotchController.shared.isReceivingDrop = targeted
             if targeted {
                 vm.tab = .shelf
                 withAnimation(.island) { vm.open() }
@@ -155,7 +181,8 @@ struct RootView: View {
 
     /// Intensidad del contorno según el estado: siempre visible, un poco más al pasar el mouse.
     private var rimStrength: Double {
-        IslandVisuals.rimStrength(base: prefs.rimOpacity, isOpen: vm.isOpen, isHovering: vm.isHovering)
+        IslandVisuals.rimStrength(base: prefs.rimOpacity, isOpen: vm.isOpen,
+                                  isHovering: vm.isHovering, pulsing: vm.pulsing)
     }
 
     /// Blanco especular: tenue arriba, intenso en el borde inferior (luz cenital).
@@ -199,20 +226,28 @@ struct RootView: View {
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
+        IslandDebug.log("drop: \(providers.count) proveedor(es), repisa: \(prefs.enableShelf)")
         guard prefs.enableShelf else { return false }
         let lock = NSLock()
         var urls: [URL] = []
         let group = DispatchGroup()
         for provider in providers {
             group.enter()
-            _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                if let url, url.isFileURL {
+            IslandDebug.log("drop: tipos \(provider.registeredTypeIdentifiers)")
+            // Se prueban todos los tipos que el origen dice tener, no solo
+            // `public.file-url`: hay apps que anuncian ese tipo y después no lo
+            // saben entregar ("Cannot load representation of type…"), y la ruta
+            // igual viene en otro.
+            DroppedFile.load(from: provider) { url in
+                if let url {
                     lock.lock(); urls.append(url); lock.unlock()
                 }
                 group.leave()
             }
         }
         group.notify(queue: .main) {
+            IslandDebug.log("drop: \(urls.count) archivo(s) leídos")
+            NotchController.shared.isReceivingDrop = false
             guard !urls.isEmpty else { return }
             ShelfStore.shared.add(urls: urls)
             vm.tab = .shelf
@@ -280,6 +315,8 @@ struct ActivityBar: View {
         case .battery(_, let plugged, let charging):
             symbol(charging ? "battery.100.bolt" : (plugged ? "powerplug.fill" : "battery.50"),
                    tint: charging ? .green : .white)
+        case .screenshot(let url, _):
+            ScreenshotThumb(url: url, side: 26)
         }
     }
 
@@ -302,6 +339,16 @@ struct ActivityBar: View {
                 .foregroundStyle(.white.opacity(0.75))
                 .lineLimit(1)
                 .accessibilityValue("\(percent) %")
+        case .screenshot(_, let sizeLabel):
+            VStack(alignment: .leading, spacing: 0) {
+                Text(LocalizedStringKey(LiveActivity.screenshotLabel))
+                    .font(.system(size: 11, weight: .semibold))
+                    .lineLimit(1)
+                Text(sizeLabel)
+                    .font(.system(size: 9.5))
+                    .foregroundStyle(.white.opacity(0.55))
+                    .lineLimit(1)
+            }
         }
     }
 
@@ -319,6 +366,9 @@ struct ActivityBar: View {
         case .battery(let percent, _, _):
             Text("\(percent) %")
                 .font(.system(size: 11, weight: .semibold, design: .rounded).monospacedDigit())
+        case .screenshot:
+            // Dice a dónde fue a parar: a la repisa, no al limbo.
+            symbol("tray.and.arrow.down.fill", tint: .white.opacity(0.7))
         }
     }
 
@@ -331,28 +381,141 @@ struct ActivityBar: View {
 
 }
 
+/// La miniatura de la captura dentro de la píldora.
+///
+/// Se carga fuera del hilo principal y reducida: un PNG de pantalla completa en
+/// un Retina son 20 megapíxeles, y decodificarlo entero para enseñarlo a 26
+/// puntos congelaría la animación de apertura justo cuando se está viendo.
+struct ScreenshotThumb: View {
+    let url: URL
+    var side: CGFloat
+
+    @State private var image: NSImage?
+
+    var body: some View {
+        Group {
+            if let image = image ?? Self.cache.object(forKey: Self.key(url, side)) {
+                Image(nsImage: image)
+                    .resizable()
+                    .interpolation(.medium)
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(Color.white.opacity(0.12))
+            }
+        }
+        .frame(width: side, height: side)
+        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+        )
+        .task(id: url) {
+            guard Self.cache.object(forKey: Self.key(url, side)) == nil else { return }
+            image = await Self.thumbnail(of: url, side: side * 3)
+            if let image { Self.cache.setObject(image, forKey: Self.key(url, side)) }
+        }
+    }
+
+    /// La misma captura sale en la píldora y en la repisa, y la repisa se vuelve
+    /// a montar con cada apertura de la isla. Sin esto se decodifica el PNG cada
+    /// vez y la miniatura parpadea en gris antes de aparecer.
+    private static let cache = NSCache<NSString, NSImage>()
+
+    private static func key(_ url: URL, _ side: CGFloat) -> NSString {
+        "\(url.path)@\(Int(side))" as NSString
+    }
+
+    /// Fuera de la vista y `nonisolated` para que no arrastre al hilo principal.
+    nonisolated static func thumbnail(of url: URL, side: CGFloat) async -> NSImage? {
+        await Task.detached(priority: .userInitiated) { () -> NSImage? in
+            guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else {
+                return NSWorkspace.shared.icon(forFile: url.path)
+            }
+            let options: [CFString: Any] = [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceCreateThumbnailWithTransform: true,
+                kCGImageSourceThumbnailMaxPixelSize: Int(side)
+            ]
+            guard let cg = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+                // Una grabación de pantalla no es una imagen: vale su ícono.
+                return NSWorkspace.shared.icon(forFile: url.path)
+            }
+            return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+        }.value
+    }
+}
+
 // MARK: - Estado abierto
+
+/// Cuánto sitio deja el panel abierto y qué cabe dentro.
+///
+/// Vive fuera de las vistas porque los cortes se decidían dentro de tres
+/// `GeometryReader` distintos —la ficha del reproductor, el estado sin música y
+/// el aviso de permiso— y solo el primero los aplicaba. En el panel más bajo
+/// que permite Preferencias, los otros dos se salían por abajo y lo único
+/// accionable de la pantalla quedaba cortado por el borde de la isla.
+enum PanelLayout {
+    /// La cabecera y los márgenes se encogen con el panel bajo.
+    static func chromeIsCompact(panelHeight: CGFloat) -> Bool { panelHeight < 150 }
+
+    static func headerHeight(panelHeight: CGFloat) -> CGFloat {
+        chromeIsCompact(panelHeight: panelHeight) ? 24 : 30
+    }
+
+    static func contentPadding(panelHeight: CGFloat) -> (horizontal: CGFloat, vertical: CGFloat) {
+        chromeIsCompact(panelHeight: panelHeight) ? (10, 7) : (14, 12)
+    }
+
+    /// Lo que le queda al contenido después de la cabecera, el divisor y los
+    /// márgenes de arriba y abajo.
+    static func contentHeight(panelHeight: CGFloat) -> CGFloat {
+        let divisor: CGFloat = 1
+        return panelHeight - headerHeight(panelHeight: panelHeight) - divisor
+            - 2 * contentPadding(panelHeight: panelHeight).vertical
+    }
+
+    /// Qué densidad cabe en ese hueco.
+    enum Density: Equatable {
+        /// Todo: ilustración, título, explicación y botones.
+        case full
+        /// Sin la explicación, y lo demás más chico.
+        case compact
+        /// Solo lo accionable: el título y los botones.
+        case tiny
+
+        var isCompact: Bool { self != .full }
+        var isTiny: Bool { self == .tiny }
+    }
+
+    static func density(contentHeight: CGFloat) -> Density {
+        if contentHeight < 88 { return .tiny }
+        if contentHeight < 120 { return .compact }
+        return .full
+    }
+}
 
 struct OpenView: View {
     @ObservedObject var vm: NotchViewModel
-    @ObservedObject var prefs = Prefs.shared
+    @ObservedObject private var prefs: Prefs
+
+    init(vm: NotchViewModel) {
+        self.vm = vm
+        _prefs = ObservedObject(wrappedValue: vm.prefs)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             header
-                .frame(height: compact ? 24 : 30)
+                .frame(height: PanelLayout.headerHeight(panelHeight: prefs.expandedHeight))
             Divider().overlay(Color.white.opacity(0.08))
             body(for: currentTab)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.horizontal, compact ? 10 : 14)
-                .padding(.vertical, compact ? 7 : 12)
+                .padding(.horizontal, PanelLayout.contentPadding(panelHeight: prefs.expandedHeight).horizontal)
+                .padding(.vertical, PanelLayout.contentPadding(panelHeight: prefs.expandedHeight).vertical)
         }
         .foregroundStyle(.white)
     }
-
-    /// Con el panel bajo, cabecera y márgenes se encogen para dejarle sitio
-    /// al contenido.
-    private var compact: Bool { prefs.expandedHeight < 150 }
 
     /// Si la pestaña activa se desactivó en Preferencias, caemos en la primera
     /// disponible en vez de mostrar algo que ya no existe.
@@ -427,10 +590,93 @@ struct TabButton: View {
 enum IslandVisuals {
     /// Intensidad del contorno: el ajuste del usuario acotado a 0…1, un 25 % más
     /// al pasar el mouse y un 10 % menos en reposo.
-    static func rimStrength(base: Double, isOpen: Bool, isHovering: Bool) -> Double {
+    static func rimStrength(base: Double, isOpen: Bool, isHovering: Bool,
+                            pulsing: Bool = false) -> Double {
         let base = max(0, min(1, base))
+        // El latido de "me tragué la captura" tiene que verse incluso con el
+        // contorno al mínimo, que es un ajuste legítimo: si se multiplicara,
+        // con 0 no pasaría nada y el aviso se perdería.
+        if pulsing { return max(0.9, min(1, base * 1.6)) }
         if isOpen { return base }
         if isHovering { return min(1, base * 1.25) }
         return base * 0.9
+    }
+}
+
+/// La miniatura de la captura subiendo hacia el notch, hasta que se la traga.
+struct CaptureTossView: View {
+    let url: URL
+    var notchHeight: CGFloat
+
+    @State private var progress: Double = 0
+
+    private var frame: CaptureToss.Frame {
+        CaptureToss.frame(at: progress, notchHeight: notchHeight)
+    }
+
+    var body: some View {
+        ScreenshotThumb(url: url, side: CaptureToss.side)
+            .scaleEffect(frame.scale)
+            .opacity(frame.opacity)
+            // La sombra se va con la miniatura: sin esto queda una mancha
+            // flotando un instante después de que ya se la tragaron.
+            .shadow(color: .black.opacity(0.45 * frame.opacity), radius: 10, y: 4)
+            .offset(y: frame.offsetY)
+            .onAppear {
+                // Entra con el mismo resorte que abre la isla: es lo que hace
+                // que se lea como la misma pieza de software y no como un
+                // efecto pegado encima.
+                withAnimation(.spring(response: CaptureToss.duration,
+                                      dampingFraction: 0.82)) {
+                    progress = 1
+                }
+            }
+    }
+}
+
+/// La captura subiendo hacia el notch.
+///
+/// El recorrido va en una función aparte porque es lo único comprobable de una
+/// animación: que empiece abajo y a tamaño de miniatura, que termine dentro del
+/// notch y ya invisible, y que no se salga del camino por el medio.
+enum CaptureToss {
+    /// Cuánto tarda en subir. Corto a propósito: es un acuse de recibo, no un
+    /// número de circo, y la píldora tiene que entrar enseguida detrás.
+    static let duration: Double = 0.26
+
+    /// Desde cuánto más abajo del notch arranca.
+    static let travel: CGFloat = 96
+
+    /// El lado de la miniatura que sube. Hace falta acá y no solo en la vista:
+    /// `scaleEffect` encoge desde el CENTRO, así que para que la miniatura
+    /// termine dentro del recorte hay que apuntar el centro, no el borde de
+    /// arriba. Sin esto se apagaba en el aire, un dedo por debajo del notch.
+    static let side: CGFloat = 56
+
+    struct Frame: Equatable {
+        /// Hacia abajo desde el borde superior de la pantalla.
+        var offsetY: CGFloat
+        var scale: CGFloat
+        var opacity: Double
+    }
+
+    /// `progress` va de 0 (recién sacada) a 1 (dentro del notch).
+    static func frame(at progress: Double, notchHeight: CGFloat) -> Frame {
+        let t = max(0, min(1, progress))
+        // Se desvanece sobre el final, no desde el principio: si empieza a
+        // apagarse enseguida, no se alcanza a ver qué subió.
+        //
+        // Se mide lo que QUEDA de visibilidad en vez de lo que se ha ido: así
+        // el último fotograma da cero exacto. Al revés —restando el
+        // desvanecido— la coma flotante dejaba un 0,0000000000000001 y la
+        // miniatura nunca terminaba de apagarse del todo.
+        let visible = (1 - t) / 0.45
+        // Empieza entera justo debajo del notch y termina con su centro en
+        // mitad del recorte.
+        let inicio = notchHeight + travel
+        let fin = notchHeight / 2 - side / 2
+        return Frame(offsetY: inicio + (fin - inicio) * t,
+                     scale: 1 - 0.72 * t,
+                     opacity: max(0, min(1, visible)))
     }
 }
