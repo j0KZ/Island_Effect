@@ -195,15 +195,29 @@ includes the launch spike).
 
 | Scenario | CPU | Memory |
 |---|---|---|
-| **At rest**, no notices | **0.40 %** | 72 MB |
-| At rest with one track change in the window | 0.93 % | 72 MB |
-| Animated track pill | 1.35 – 3.15 % | 76 MB |
-| Island open, quiet screen behind | 1.63 % | 73 MB |
-| Island open, changing content behind | 5.04 % | 71 MB |
-| *(reference: before optimising, at rest)* | *5.33 %* | *125 MB* |
+| **Idle**, no notice showing | **0.58 %** | 85 MB |
+| Island open on Shelf (no sampling) | 1.31 % | 92 MB |
+| Island open on Stats (1 Hz sampling) | 3.35 % | 88 MB |
+| *(reference: before optimizing, idle)* | *5.33 %* | *125 MB* |
+
+Reading the four numbers on the Stats tab costs **0.93 ms**: CPU 0.009 ms,
+memory 0.001 ms, battery 0.118 ms, GPU 0.800 ms. At one sample per second,
+measuring costs 0.09 % CPU. Everything else in that row is **drawing**: each new
+sample redraws the island, and the translucent material resamples whatever is
+behind it. That is why samples are batched into one and rounded to what actually
+shows: on a quiet machine there are seconds where nothing changes and nothing is
+redrawn. That took the tab from 4.11 % to 3.35 %; the rest is inherent to a
+translucent panel that updates.
+
+Sampling only runs while you are looking at that tab. With the island closed
+nothing runs, hence the 0.58 % idle.
+
+It does not register as energy: measuring per-process draw over 20 seconds, the
+app recorded nothing measurable while Spotify showed 0.0017 W and Discord
+0.0017 W.
 
 Cold start: **~130 ms** from launch to the island mounted and listening (three
-runs: 128, 129, 130 ms). Binary 1.3 MB, bundle 1.6 MB, 10 threads.
+runs: 128, 129, 130 ms). Binary 1.3 MB, bundle 1.6 MB, 4 threads.
 
 Both island-open rows are the same code: the translucent material re-samples
 whatever is behind it every time that changes, so over a quiet desktop it costs
