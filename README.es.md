@@ -196,16 +196,30 @@ del proceso e incluye el pico de lanzamiento).
 
 | Escenario | CPU | Memoria |
 |---|---|---|
-| **Reposo**, sin ningún aviso | **0,40 %** | 72 MB |
-| Reposo con un cambio de canción en la ventana | 0,93 % | 72 MB |
-| Píldora de canción animada | 1,35 – 3,15 % | 76 MB |
-| Isla abierta, pantalla quieta detrás | 1,63 % | 73 MB |
-| Isla abierta, contenido cambiando detrás | 5,04 % | 71 MB |
+| **Reposo**, sin ningún aviso | **0,58 %** | 85 MB |
+| Isla abierta en Repisa (sin sondeo) | 1,31 % | 92 MB |
+| Isla abierta en Estadísticas (sondeo 1 Hz) | 3,35 % | 88 MB |
 | *(referencia: antes de optimizar, en reposo)* | *5,33 %* | *125 MB* |
+
+Leer los cuatro datos de la pestaña de Estadísticas cuesta **0,93 ms**: CPU
+0,009 ms, memoria 0,001 ms, batería 0,118 ms y GPU 0,800 ms. O sea que a una
+muestra por segundo, medir cuesta un 0,09 % de CPU. Todo lo demás de esa fila es
+**dibujar**: cada muestra nueva redibuja la isla, y el material translúcido
+vuelve a muestrear lo que tiene detrás. Por eso las muestras se agrupan en una
+sola y se redondean a lo que se llega a ver: con la máquina tranquila hay
+segundos en los que no cambia nada y no se redibuja nada. Eso bajó la pestaña
+de 4,11 % a 3,35 %; el resto es inherente a un panel translúcido que se
+actualiza.
+
+El sondeo solo corre mientras estás mirando esa pestaña. Cerrada la isla, no
+corre nada: de ahí el 0,58 % de reposo.
+
+En energía no aparece: midiendo el gasto por proceso durante 20 segundos, la app
+no registró nada medible mientras Spotify marcaba 0,0017 W y Discord 0,0017 W.
 
 Arranque en frío: **~130 ms** desde el lanzamiento hasta la isla montada y
 escuchando (tres medidas: 128, 129, 130 ms). Binario 1,3 MB, bundle 1,6 MB,
-10 hilos.
+4 hilos.
 
 Los dos escenarios de isla abierta son el mismo código: el material translúcido
 vuelve a muestrear lo que tiene detrás cada vez que eso cambia, así que sobre un

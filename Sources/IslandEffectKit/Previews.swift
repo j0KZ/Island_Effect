@@ -85,7 +85,7 @@ private func previewPrefs(_ setup: (Prefs) -> Void = { _ in }) -> Prefs {
 private func previewStats(cpu: Double? = 0.179, gpu: Double? = 0.44,
                           plugged: Bool = false) -> StatsMonitor {
     StatsMonitor(cpu: cpu,
-                 memory: (used: 28_690_000_000, total: 51_539_607_552),
+                 memory: StatsMonitor.Memory(used: 28_690_000_000, total: 51_539_607_552),
                  gpu: gpu,
                  power: SystemStats.Power(milliamps: -964, millivolts: 11_224,
                                           minutesRemaining: 184, percent: 41,

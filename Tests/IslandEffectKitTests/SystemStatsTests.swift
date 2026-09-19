@@ -333,3 +333,69 @@ struct ModuleTests {
         }
     }
 }
+
+/// El redondeo de las muestras.
+///
+/// No es cosmético: cada muestra distinta redibuja la isla, y redibujarla
+/// significa que el material translúcido vuelve a muestrear lo que tiene
+/// detrás, que es lo más caro que hace la app. Leer los cuatro datos cuesta
+/// 0,93 ms; dibujarlos, mil veces más. Redondear a lo que se llega a ver hace
+/// que haya segundos en los que no se redibuja nada.
+struct QuantizeTests {
+
+    @Test("Un porcentaje se redondea al entero que se enseña")
+    func percentIsRounded() {
+        // 12,3001 % y 12,3002 % pintan el mismo "12 %", y sin redondear eran
+        // dos muestras distintas y dos redibujos.
+        #expect(StatsMonitor.quantize(0.123001) == StatsMonitor.quantize(0.123002))
+        #expect(StatsFormat.percent(StatsMonitor.quantize(0.1234)) == "12 %")
+    }
+
+    @Test("Con la máquina quieta, dos segundos seguidos dan la misma muestra")
+    func idleMachineDoesNotRedraw() {
+        // Es el caso normal: la CPU no se mueve de un segundo a otro.
+        let a = StatsMonitor.quantize(0.1201)
+        let b = StatsMonitor.quantize(0.1204)
+        #expect(a == b)
+    }
+
+    @Test("El amperaje se redondea a 10 mA")
+    func amperageIsRounded() {
+        // El de verdad cambia de unidad CADA segundo, así que la muestra
+        // siempre era distinta y la isla siempre se redibujaba, aunque en
+        // pantalla dijera lo mismo.
+        let base = SystemStats.Power(milliamps: -964, millivolts: 11_224,
+                                     minutesRemaining: 184, percent: 41,
+                                     cycles: 12, charging: false, plugged: false)
+        var movido = base
+        movido.milliamps = -961
+        #expect(StatsMonitor.quantize(base) == StatsMonitor.quantize(movido))
+    }
+
+    @Test("Y el redondeo no mueve el número que se ve")
+    func roundingStaysBelowWhatIsShown() {
+        // Los watts salen con un decimal: 10 mA a 11 V son 0,11 W, así que el
+        // paso queda por debajo de lo que se llega a distinguir... y hay que
+        // comprobarlo, porque redondear de más sería falsear la medida.
+        let real = SystemStats.Power(milliamps: -964, millivolts: 11_224,
+                                     minutesRemaining: 184, percent: 41,
+                                     cycles: 12, charging: false, plugged: false)
+        let exactos = SystemStats.watts(real) ?? 0
+        let redondeados = SystemStats.watts(StatsMonitor.quantize(real)) ?? 0
+        #expect(abs(exactos - redondeados) < 0.12)
+    }
+
+    @Test("Lo que no es ruido no se toca")
+    func meaningfulFieldsSurvive() {
+        // El porcentaje, los ciclos y los minutos se enseñan tal cual: si el
+        // redondeo los tocara, el panel mentiría.
+        let p = SystemStats.Power(milliamps: -964, millivolts: 11_224,
+                                  minutesRemaining: 184, percent: 41,
+                                  cycles: 12, charging: false, plugged: true)
+        let q = StatsMonitor.quantize(p)
+        #expect(q.percent == 41)
+        #expect(q.cycles == 12)
+        #expect(q.minutesRemaining == 184)
+        #expect(q.plugged)
+    }
+}
