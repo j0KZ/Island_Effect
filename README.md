@@ -81,6 +81,32 @@ one you don't use saves a query and an automation prompt)
 - Battery cycles, otherwise buried in Settings → General → About.
 - It only samples while you are looking at the tab. Closed, nothing runs.
 
+**macOS Shortcuts**
+
+The other way round from what these apps usually offer. The normal pitch is "the
+island runs a Shortcut", which only helps if you already have Shortcuts built.
+This is the opposite: any Shortcut sends things *to* the island, with the plain
+**Open URL** action. The island becomes the output of whatever you already
+automate.
+
+| URL | What it does |
+|---|---|
+| `islandeffect://notice?text=Backup%20done` | a notice under the notch |
+| `…&icon=checkmark.circle` | with a system symbol |
+| `…&seconds=6` | how long it stays (1–30; otherwise the one in Preferences) |
+| `islandeffect://shelf?path=/tmp/report.pdf` | drops the file on the shelf |
+| `…&minutes=10` | drops it temporarily, with a countdown (1–120) |
+| `islandeffect://open` · `islandeffect://close` | opens or closes the island |
+
+Parameter names ignore case, a decimal comma works like a dot, a symbol that
+doesn't exist is dropped instead of leaving a hole, and a number out of range is
+clamped instead of lost. A URL it can't parse does nothing. The whole bridge can
+be turned off in Preferences → Modules.
+
+A URL scheme was chosen over App Intents, the official route: App Intents needs a
+build step Xcode performs and this project — plain SwiftPM with a `build.sh` —
+does not run.
+
 **How you use it**
 - Hover the notch to open it.
 - Click: it stays open; click again to close.
@@ -156,6 +182,7 @@ is copying a `.lproj` folder and translating it.
 | `ScreenshotWatcher.swift` | Watches the screenshot folder (`DispatchSource`) |
 | `SystemMonitors.swift` | Volume (CoreAudio, on demand) and battery (IOKit) |
 | `SystemStats.swift` / `StatsView.swift` | CPU and memory (Mach), GPU and draw (IOKit) |
+| `IslandURL.swift` | The Shortcuts bridge: `islandeffect://…` |
 | `Components.swift` | Shared pieces: artwork, slider, equalizer, buttons |
 | `SettingsView.swift` | Preferences + login item |
 | `Debug.swift` | Optional log and test hooks (`ISLAND_*`) |

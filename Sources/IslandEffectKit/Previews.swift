@@ -157,6 +157,21 @@ private func sampleCapture() -> URL {
     return url
 }
 
+#Preview("Isla cerrada · Aviso de un Atajo") {
+    RootView(vm: previewModel(open: false,
+                              activity: .notice(text: "Respaldo terminado",
+                                                symbol: "externaldrive.badge.checkmark")))
+        .frame(width: 600, height: 120)
+        .background(.black)
+}
+
+#Preview("Isla cerrada · Aviso sin ícono") {
+    RootView(vm: previewModel(open: false,
+                              activity: .notice(text: "Copia de seguridad lista 🎉", symbol: nil)))
+        .frame(width: 600, height: 120)
+        .background(.black)
+}
+
 #Preview("Isla cerrada · Captura lista") {
     RootView(vm: previewModel(open: false,
                               activity: .screenshot(url: sampleCapture(), sizeLabel: "1,2 MB")))

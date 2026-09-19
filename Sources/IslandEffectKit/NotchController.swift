@@ -280,6 +280,31 @@ final class NotchController {
         }
     }
 
+    /// Ejecuta lo que pidió un Atajo.
+    func run(_ command: IslandURL.Command) {
+        switch command {
+        case .notice(let text, let symbol, let seconds):
+            // Sin `seconds` sale la duración que el usuario eligió para los
+            // avisos: su Atajo no tiene por qué opinar de eso.
+            viewModel.show(.notice(text: text, symbol: symbol), duration: seconds)
+        case .shelf(let path, let minutes):
+            let url = URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
+            // Con `minutes` entra de paso, como una captura; sin él, al cajón.
+            if let minutes {
+                ShelfStore.shared.addCapture(url: url, ttl: minutes * 60)
+            } else {
+                ShelfStore.shared.add(urls: [url])
+            }
+            if prefs.enableShelf { viewModel.tab = .shelf }
+        case .open:
+            // Anclada: la abrió un Atajo, no el mouse, así que no debe cerrarse
+            // sola en cuanto el puntero pase cerca.
+            withAnimation(.island) { viewModel.open(); viewModel.isPinned = true }
+        case .close:
+            withAnimation(.islandFast) { viewModel.close(force: true) }
+        }
+    }
+
     /// Una captura recién hecha: a la repisa y, si el usuario quiere, un aviso.
     ///
     /// El archivo se acaba de crear y puede estar todavía escribiéndose, así que

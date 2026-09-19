@@ -6,6 +6,7 @@
 "20 %" = "20 %";
 "A pocket: drop files onto the notch and drag them back out wherever you need them." = "Un bolsillo: sueltas archivos sobre el notch y los vuelves a arrastrar a donde los necesites.";
 "About" = "Acerca de";
+"Any Shortcut can show a notice under the notch or drop a file on the shelf, with the plain \"Open URL\" action. Turn it off and the island ignores them." = "Cualquier Atajo puede mostrar un aviso bajo el notch o dejar un archivo en la repisa, con la acción \"Abrir URL\" de toda la vida. Apagándolo, la isla los ignora.";
 "Appearance" = "Apariencia";
 "Automation permission missing" = "Falta el permiso de Automatización";
 "Battery charging" = "Carga de batería";
@@ -28,6 +29,7 @@
 "Keep on the shelf" = "Dejar en la repisa";
 "Keep open" = "Mantener abierto";
 "Leaves the shelf soon" = "Se va de la repisa pronto";
+"Let Shortcuts send things to the island" = "Dejar que Atajos mande cosas a la isla";
 "Memory" = "Memoria";
 "Menu bar icon" = "Ícono en la barra de menús";
 "Modules" = "Módulos";
@@ -62,6 +64,7 @@
 "Screenshots land on the shelf" = "Las capturas caen en la repisa";
 "Screenshots take about five seconds to show up" = "Las capturas tardan unos cinco segundos en aparecer";
 "Shelf" = "Repisa";
+"Shortcuts" = "Atajos";
 "Show in Finder" = "Mostrar en Finder";
 "Stats" = "Estadísticas";
 "System Settings › Privacy & Security › Automation\\nEnable Music and Spotify for Island Effect." = "Ajustes del Sistema › Privacidad y seguridad › Automatización\\nActiva Música y Spotify para Island Effect.";
